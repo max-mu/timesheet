@@ -1,4 +1,4 @@
-from wtforms import SubmitField, StringField, PasswordField, DateField, FloatField
+from wtforms import SubmitField, StringField, PasswordField, DateField, FloatField, HiddenField
 from flask_wtf import FlaskForm
 from wtforms.validators import DataRequired
 
@@ -10,4 +10,5 @@ class LoginForm(FlaskForm):
 class HoursForm(FlaskForm):
     hours = FloatField(label='Hours you worked', validators=[DataRequired()])
     date = DateField(validators=[DataRequired()], format='%m/%d/%Y')
+    approved = HiddenField()
     submit = SubmitField(label='Submit')

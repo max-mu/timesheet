@@ -24,11 +24,13 @@ class Timesheet(db.Model):
     name = db.Column(db.String, primary_key=True)
     hours = db.Column(db.Float)
     date = db.Column(db.String)
+    approval = db.Column(db.String)
 
-    def __init__(self, name, hours, date):
+    def __init__(self, name, hours, date, approval):
         self.name = name
         self.hours = hours
         self.date = date
+        self.approval = approval
 
 def validLogin(e, password):
     list = Employee.query.filter_by(email=e).all()
@@ -59,6 +61,12 @@ def hours(name):
     message = ''
     if request.method == 'POST' and form.validate_on_submit():
         # TODO: Need to submit the name associated with the email and hours to a database
+        hours = request.form['hours']
+        date = request.form['date']
+        approval = 'No'
+        record = Timesheet(name, hours, date, approval)
+        db.session.add(record)
+        db.session.commit()
         return 'Your hours have been submitted!'
     elif request.method == 'POST' and (not form.validate_on_submit()):
         if not isinstance(form.hours.data, (int, float)):
