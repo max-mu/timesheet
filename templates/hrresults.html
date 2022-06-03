@@ -2,8 +2,12 @@
 {% import "bootstrap/wtf.html" as wtf %}
 {% block content %}
 <div class="container">
-  <h3>HR Results</h3>
+  <h3 class="pt-3">HR Results</h3>
+  {% if isEmpty==False %}
   <hr>
+    <p class="pt-3"><strong>There were no results for {{ name }} in this timeframe.</strong></p>
+    <p ><strong>If you were expecting results, please double check all fields.</strong></p>
+  {% else %}
   <table class="table">
     <tr>
         <th>Name</th>
@@ -11,17 +15,18 @@
         <th>Date</th>
         <th>Approval Status</th>
     </tr>
-    {% for data in filtered %}
-    <tr>
-        <td>{{ data.name }}</td>
-        <td>{{ data.hours }}</td>
-        <td>{{ data.date }}</td>
-        <td>{{ data.approval }}</td>
-    </tr>
-    {% endfor %}
-    </table>
-    <!-- links -->
-      <p><a href="{{ url_for('hr') }}">Go back to the HR Hub</a></p>
+      {% for data in filtered %}
+      <tr>
+          <td>{{ data.name }}</td>
+          <td>{{ data.hours }}</td>
+          <td>{{ data.date }}</td>
+          <td>{{ data.approval }}</td>
+      </tr>
+      {% endfor %}
+  </table>
+  {% endif %}
+  <!-- links -->
+    <p><a href="{{ url_for('hr') }}">Go back to the HR Hub</a></p>
 	  <p><a href="{{ url_for('index') }}">Go back to the Main Hub</a></p>
   <hr>
 </div>

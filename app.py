@@ -156,28 +156,28 @@ def hr():
     form = HRForm(request.form)
     message = ''
     if request.method == 'POST' and form.validate_on_submit():
-        n = form.name.data
+        name = form.name.data
         dateBegin = form.dateBegin.data
         dateEnd = form.dateEnd.data
-        filtered = []
-        list = Timesheet.query.filter_by(name=n).order_by(Timesheet.date).all()
-        for data in list:
-            date = datetime.strptime(data.date, '%m/%d/%Y').date()
-            if dateBegin <= date and date <= dateEnd:
-                filtered.append(data)
-        if len(filtered) == 0:
-            message = 'There were no results found.'
-        else:
-            return redirect( url_for('hrresults', filtered=filtered))
+        return redirect( url_for('hrresults', name=name, dateBegin=dateBegin, dateEnd=dateEnd))
     # If the user input something incorrectly, one of these errors will be printed                
     elif request.method == 'POST' and (not form.validate_on_submit()):
         message = 'Please formate the date(s) as mm/dd/yyyy.'
     return render_template('hr.html', form=form, message=message)
 
 # HR Results route
-@app.route('/hrresults/<filtered>', methods=['GET', 'POST'])
-def hrresults(filtered):
-    return render_template('hrresults.html', filtered=filtered)
+@app.route('/hrresults/<name>/<dateBegin>/<dateEnd>', methods=['GET', 'POST'])
+def hrresults(name, dateBegin, dateEnd):
+    list = Timesheet.query.filter_by(name=name).order_by(Timesheet.date).all()
+    begin = datetime.strptime(dateBegin, '%Y-%m-%d').date()
+    end = datetime.strptime(dateEnd, '%Y-%m-%d').date()
+    filtered = []
+    for data in list:
+        date = datetime.strptime(data.date, '%m/%d/%Y').date()
+        if begin <= date and date <= end:
+            filtered.append(data)
+    return render_template('hrresults.html', filtered=filtered, name=name, isEmpty=(len(filtered) > 0))
+
 
 if __name__ == '__main__':
     app.run()
