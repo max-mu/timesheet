@@ -1,4 +1,4 @@
-from flask import Flask, request, flash, render_template, redirect, url_for
+from flask import Flask, request, render_template, redirect, url_for
 from forms import HRForm, HoursForm
 from flask_bootstrap import Bootstrap
 from flask_sqlalchemy import SQLAlchemy
