@@ -1,6 +1,7 @@
 from flask import Flask, request, render_template, redirect, url_for
 from flask_bootstrap import Bootstrap
 from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, login_manager, login_user, login_required, logout_user
 from wtforms import SubmitField, StringField, PasswordField, DateField, FloatField, HiddenField, SelectField
 from flask_wtf import FlaskForm
 from wtforms.validators import InputRequired
@@ -12,23 +13,24 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'not a secure key'
 Bootstrap(app)
 
-db_name = 'timesheet.db'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_name
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///timesheet.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 db = SQLAlchemy(app)
 
-class HR(enum.Enum):
-    valid = 1
-    invalid = 2
-    loginFail = 3
+class Login(enum.Enum):
+    VALID = 1
+    INVALID = 2
+    LOGINFAIL = 3
 
 # Employee Table
 class Employees(db.Model):
     __tablename__ = 'Employees'
-    name = db.Column(db.String, primary_key=True)
-    email = db.Column(db.String)
+    name = db.Column(db.String)
+    email = db.Column(db.String, primary_key=True)
     password = db.Column(db.String)
-    HR = db.Column(db.Integer) # 0 for not in HR, 1 for in HR
+    ishr = db.Column(db.Integer) # 0 for not in HR, 1 for in HR
+    supervisor = db.Column(db.String)
+    issupervisor = db.Column(db.Integer) # 0 for not a supervisor, 1 for supervisor
 
 # Timesheet Table
 class Timesheet(db.Model):
@@ -60,8 +62,14 @@ class HRLoginForm(FlaskForm):
     password = PasswordField(label='Password', validators=[InputRequired()])
     login = SubmitField(label='Login')
 
+# Supervisor Login Form
+class SupvLoginForm(FlaskForm):
+    email = StringField(label='Email Address', validators=[InputRequired()])
+    password = PasswordField(label='Password', validators=[InputRequired()])
+    login = SubmitField(label='Login')
+
 # Generates the list of names of employees for HRForm
-def getNameChoices():
+def get_name_choices():
     choices = [('', '')]
     list = Employees.query.order_by(Employees.name).distinct()
     for data in list:
@@ -71,25 +79,35 @@ def getNameChoices():
 # HR Form
 class HRForm(FlaskForm):
     name = SelectField(label='Name of the employee', 
-        validators=[InputRequired()], choices=getNameChoices())
+        validators=[InputRequired()], choices=get_name_choices())
     dateBegin = DateField(label='First date you want your search to contain (formatted as mm/dd/yyyy)', 
         validators=[InputRequired()], format='%m/%d/%Y')
     dateEnd = DateField(label='Last date you want your search to contain (formatted as mm/dd/yyyy)', 
         validators=[InputRequired()], format='%m/%d/%Y')
     submit = SubmitField(label='Submit')
 
+# Used in submitting hours, checks to see if the email and password are a valid login
+def valid_login(e, password):
+    data = Employees.query.filter_by(email=e).first() # Should only return one result anyways
+    if(data != None and data.password == password):
+        return True, data.name
+    return False, ''
+
+# Used in HR/Supervisor login, checks to see if the email and password are a valid login
+# If login is valid, checks to see if the person logging in is in HR/Supervisor
+def restrict_login(e, password, type):
+    data = Employees.query.filter_by(email=e).first() # Should only return one result anyways
+    if(data != None and data.password == password):
+        if(data.ishr and type == 'HR') or (data.issupervisor and type == 'supv'):
+            return Login.VALID
+        else:
+            return Login.INVALID
+    return Login.LOGINFAIL
+
 # Default route
 @app.route('/')
 def index():
     return render_template('index.html')
-
-# Used in submitting hours, checks to see if the email and password are a valid login
-def validLogin(e, password):
-    list = Employees.query.filter_by(email=e).all()
-    for data in list:
-      if(data.password == password):
-        return True, data.name
-    return False, ''
 
 # Hours Sumbission route
 @app.route('/hours', methods=['GET', 'POST'])
@@ -100,7 +118,7 @@ def hours():
         email = form.email.data
         password = form.password.data
         # tup is a (bool, string) pair
-        tup = validLogin(email, password)
+        tup = valid_login(email, password)
         if tup[0]:
             name = tup[1]
             hours = request.form['hours']
@@ -120,31 +138,18 @@ def hours():
             message = 'Please formate the date as mm/dd/yyyy.'
     return render_template('hours.html', form=form, message=message)
 
-# Used in HR login, checks to see if the email and password are a valid login
-# If login is valid, checks to see if the person logging in is in HR
-def validHR(e, password):
-    list = Employees.query.filter_by(email=e).all()
-    for data in list:
-      if(data.password == password):
-        if(data.HR):
-            return HR.valid
-        else:
-            return HR.invalid
-    return HR.loginFail
-
 # HR Login route
 @app.route('/hrlogin', methods=['GET', 'POST'])
 def hrlogin():
     form = HRLoginForm(request.form)
     message = ''
     if request.method == 'POST' and form.validate_on_submit():
-        # TODO: Implement HR being able to view the database; regular employees cannot
         email = form.email.data
         password = form.password.data
-        result = validHR(email, password)
-        if result == HR.valid: # Valid login, in HR
+        result = restrict_login(email, password, 'HR')
+        if result == Login.VALID: # Valid login, in HR
             return redirect( url_for('hr'))
-        elif result == HR.invalid: # Valid login, not in HR
+        elif result == Login.INVALID: # Valid login, not in HR
             message = 'You are not in the HR department. If you meant to submit your hours, go back and click on the correct link.'
         else:
             message = 'Invalid email/password.'
@@ -167,7 +172,7 @@ def hr():
 
 # HR Results route
 @app.route('/hrresults/<name>/<dateBegin>/<dateEnd>', methods=['GET', 'POST'])
-def hrresults(name, dateBegin, dateEnd):
+def hr_results(name, dateBegin, dateEnd):
     list = Timesheet.query.filter_by(name=name).order_by(Timesheet.date).all()
     begin = datetime.strptime(dateBegin, '%Y-%m-%d').date()
     end = datetime.strptime(dateEnd, '%Y-%m-%d').date()
@@ -178,6 +183,25 @@ def hrresults(name, dateBegin, dateEnd):
             filtered.append(data)
     return render_template('hrresults.html', filtered=filtered, name=name, isEmpty=(len(filtered) > 0))
 
+@app.route('/supvlogin', methods=['GET', 'POST'])
+def supv_login():
+    form = SupvLoginForm(request.form)
+    message = ''
+    if request.method == 'POST' and form.validate_on_submit():
+        email = form.email.data
+        password = form.password.data
+        result = restrict_login(email, password, 'supv')
+        if result == Login.VALID: # Valid login, supervisor
+            return redirect( url_for('supv'))
+        elif result == Login.INVALID: # Valid login, supervisor
+            message = 'You are not a supervisor. If you meant to submit your hours, go back and click on the correct link.'
+        else:
+            message = 'Invalid email/password.'
+    return render_template('supvlogin.html', form=form, message=message)
+
+@app.route('/supv', methods=['GET', 'POST'])
+def supv():
+    return render_template('supv.html')
 
 if __name__ == '__main__':
     app.run()
