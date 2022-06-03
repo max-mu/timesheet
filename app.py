@@ -1,7 +1,8 @@
 from flask import Flask, request, flash, render_template, redirect, url_for
-from forms import LoginForm, HoursForm
+from forms import HRForm, HoursForm
 from flask_bootstrap import Bootstrap
 from flask_sqlalchemy import SQLAlchemy
+import enum
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'not a secure key'
@@ -32,6 +33,11 @@ class Timesheet(db.Model):
         self.date = date
         self.approval = approval
 
+class HR(enum.Enum):
+    valid = 1
+    invalid = 2
+    loginFail = 3
+
 def validLogin(e, password):
     list = Employee.query.filter_by(email=e).all()
     for data in list:
@@ -39,41 +45,62 @@ def validLogin(e, password):
         return True, data.name
     return False, ''
 
-@app.route('/', methods=['GET', 'POST'])
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    form = LoginForm(request.form)
+def validHR(e, password):
+    list = Employee.query.filter_by(email=e).all()
+    for data in list:
+      if(data.password == password):
+        if(data.HR):
+            return HR.valid
+        else:
+            return HR.invalid
+    return HR.loginFail
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/hours', methods=['GET', 'POST'])
+def hours():
+    form = HoursForm(request.form)
     message = ''
     if request.method == 'POST' and form.validate_on_submit():
-        # TODO: Implement HR being able to view the database; regular employees cannot
         email = form.email.data
         password = form.password.data
         tup = validLogin(email, password)
         if tup[0]:
-            return redirect( url_for('hours', name=tup[1]))
+            name = tup[1]
+            hours = request.form['hours']
+            date = request.form['date']
+            approval = 'No'
+            record = Timesheet(name, hours, date, approval)
+            db.session.add(record)
+            db.session.commit()
+            return render_template('confirm.html')
         else:
             message = 'Invalid email/password.'
-    return render_template('login.html', form=form, message=message)
-
-@app.route('/hours/<name>', methods=['GET', 'POST'])
-def hours(name):
-    form = HoursForm(request.form)
-    message = ''
-    if request.method == 'POST' and form.validate_on_submit():
-        # TODO: Need to submit the name associated with the email and hours to a database
-        hours = request.form['hours']
-        date = request.form['date']
-        approval = 'No'
-        record = Timesheet(name, hours, date, approval)
-        db.session.add(record)
-        db.session.commit()
-        return 'Your hours have been submitted!'
     elif request.method == 'POST' and (not form.validate_on_submit()):
         if not isinstance(form.hours.data, (int, float)):
             message = 'Please enter a numerical value for your hours.'
         else:
             message = 'Please formate the date as mm/dd/yyyy.'
     return render_template('hours.html', form=form, message=message)
+
+@app.route('/hr', methods=['GET', 'POST'])
+def hr():
+    form = HRForm(request.form)
+    message = ''
+    if request.method == 'POST' and form.validate_on_submit():
+        # TODO: Implement HR being able to view the database; regular employees cannot
+        email = form.email.data
+        password = form.password.data
+        result = validHR(email, password)
+        if result == HR.valid:
+            return redirect( url_for('hours'))
+        elif result == HR.invalid:
+            message = 'You are not in the HR department. If you meant to submit your hours, go back and click on the correct link.'
+        else:
+            message = 'Invalid email/password.'
+    return render_template('hr.html', form=form, message=message)
 
 if __name__ == '__main__':
     app.run()
