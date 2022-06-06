@@ -8,7 +8,7 @@
     <p class="pt-3"><strong>There were no results for {{ name }} in this timeframe.</strong></p>
     <p ><strong>If you were expecting results, please double check all fields.</strong></p>
   {% else %}
-  <form method="POST" id="form2" action="{{ url_for('supvresults') }}">
+  <form method="POST" id="EditForm" action="{{ url_for('supvedits', supvname=supvname, name=name) }}">
   <table class="table">
     <tr>
         <th></th>
@@ -37,7 +37,7 @@
   </div>
 
   <div class="form-group">
-    <input class="btn btn-success" type="submit" value="Submit Choice">
+    <p class="pt-3"><input class="btn btn-success" type="submit" value="Submit Choice"></p>
   </div>
   </form>
   <!-- links -->

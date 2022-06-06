@@ -234,5 +234,18 @@ def supvresults(supvname, name, dateBegin, dateEnd):
             filtered.append(data)
     return render_template('supvresults.html', filtered=filtered, supvname=supvname, name=name, isEmpty=(len(filtered) > 0))
 
+@app.route('/supvedits/<supvname>/<name>', methods=['POST'])
+def supvedits(supvname, name):
+    date = request.form['date']
+    choice = request.form['choice']
+    entry = Timesheet.query.filter_by(name=name).filter(Timesheet.date == date).first()
+    redun = (entry.approval == 'Yes' and choice == 'approve') or (entry.approval == 'No' and choice == 'unapprove')
+    if not redun:
+        if choice == 'approve':
+            entry.approval = 'Yes'
+        else:
+            entry.approval = 'No'
+        db.session.commit()
+    return render_template('supvedits.html', supvname=supvname, choice=choice, redun=redun)
 if __name__ == '__main__':
     app.run()
