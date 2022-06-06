@@ -1,13 +1,12 @@
 from flask import Flask, request, render_template, redirect, url_for
 from flask_bootstrap import Bootstrap
 from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager, login_manager, login_user, login_required, logout_user
-from wtforms import SubmitField, StringField, PasswordField, DateField, FloatField, HiddenField, SelectField
+from wtforms import SubmitField, StringField, PasswordField, DateField, FloatField, HiddenField, SelectField, RadioField
 from flask_wtf import FlaskForm
 from wtforms.validators import InputRequired
+from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import enum
-from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
 # TODO: Change this key in the end
@@ -18,8 +17,8 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 db = SQLAlchemy(app)
 
 class Login(enum.Enum):
-    VALID = 1
-    INVALID = 2
+    AUTH = 1
+    UNAUTH = 2
     LOGINFAIL = 3
 
 # Employee Model
@@ -35,9 +34,9 @@ class Employees(db.Model):
 # Timesheet Model
 class Timesheet(db.Model):
     __tablename__ = "Timesheet"
-    name = db.Column(db.String, primary_key=True)
+    name = db.Column(db.String)
     hours = db.Column(db.Float)
-    date = db.Column(db.String)
+    date = db.Column(db.String, primary_key=True)
     approval = db.Column(db.String)
 
     def __init__(self, name, hours, date, approval):
@@ -92,10 +91,10 @@ def valid_login(e, password):
 def restrict_login(e, password, type):
     data = Employees.query.filter_by(email=e).first() # Should only return one result anyways
     if(data != None and data.password == password):
-        if(data.ishr and type == 'HR') or (data.issupervisor and type == 'supv'):
-            return Login.VALID, data
+        if(data.ishr and type == 'hr') or (data.issupervisor and type == 'supv'):
+            return Login.AUTH, data
         else:
-            return Login.INVALID, None
+            return Login.UNAUTH, None
     return Login.LOGINFAIL, None
 
 # Default route
@@ -132,6 +131,7 @@ def hours():
             message = 'Please formate the date as mm/dd/yyyy.'
     return render_template('hours.html', form=form, message=message)
 
+# Hours Confirmation route
 @app.route('/confirm')
 def confirm():
     return render_template('confirm.html')
@@ -146,10 +146,10 @@ def hrlogin():
         password = form.password.data
         # result is a (Login, SQ query) tuple
         # The SQ query is not used here
-        result = restrict_login(email, password, 'HR')
-        if result[0] == Login.VALID: # Valid login, in HR
+        result = restrict_login(email, password, 'hr')
+        if result[0] == Login.AUTH: # Valid login, in HR
             return redirect( url_for('hr'))
-        elif result[0] == Login.INVALID: # Valid login, not in HR
+        elif result[0] == Login.UNAUTH: # Valid login, not in HR
             message = 'You are not in the HR department. If you meant to submit your hours, go back and click on the correct link.'
         else:
             message = 'Invalid email/password.'
@@ -193,9 +193,9 @@ def supvlogin():
         password = form.password.data
         # result is a (Login, SQ query) tuple
         result = restrict_login(email, password, 'supv')
-        if result[0] == Login.VALID: # Valid login, supervisor
+        if result[0] == Login.AUTH: # Valid login, supervisor
             return redirect( url_for('supv', supvname=result[1].name))
-        elif result[0] == Login.INVALID: # Valid login, not a supervisor
+        elif result[0] == Login.UNAUTH: # Valid login, not a supervisor
             message = 'You are not a supervisor. If you meant to submit your hours, go back and click on the correct link.'
         else:
             message = 'Invalid email/password.'

@@ -8,8 +8,10 @@
     <p class="pt-3"><strong>There were no results for {{ name }} in this timeframe.</strong></p>
     <p ><strong>If you were expecting results, please double check all fields.</strong></p>
   {% else %}
+  <form method="POST" id="form2" action="{{ url_for('supvresults') }}">
   <table class="table">
     <tr>
+        <th></th>
         <th>Name</th>
         <th>Hours</th>
         <th>Date</th>
@@ -17,6 +19,7 @@
     </tr>
       {% for data in filtered %}
       <tr>
+          <td class="center-align"><input type="radio" name="date" value="{{ data.date }}" required></td>
           <td>{{ data.name }}</td>
           <td>{{ data.hours }}</td>
           <td>{{ data.date }}</td>
@@ -25,6 +28,18 @@
       {% endfor %}
   </table>
   {% endif %}
+  <p>If you would like to change the approval status of one of the entries above, select it.</p>
+  <div class="form-check form-check-inline">
+  <label class="form-check-label"><input class="form-check-input" type="radio" name="choice" value="approve" required> Approve it</label>
+  </div>
+  <div class="form-check form-check-inline">
+  <label class="form-check-label"><input class="form-check-input" type="radio" name="choice" value="unapprove" required> Unapprove it</label>
+  </div>
+
+  <div class="form-group">
+    <input class="btn btn-success" type="submit" value="Submit Choice">
+  </div>
+  </form>
   <!-- links -->
     <p><a href="{{ url_for('supv', supvname=supvname) }}">Go back to the Supvervisor Hub</a></p>
 	<p><a href="{{ url_for('index') }}">Go back to the Main Hub</a></p>
