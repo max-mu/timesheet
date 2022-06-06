@@ -2,7 +2,7 @@
 {% import "bootstrap/wtf.html" as wtf %}
 {% block content %}
 <div class="container">
-  <h3 class="pt-3">HR Results</h3>
+  <h3 class="pt-3">Supervisor Results</h3>
   {% if isEmpty==False %}
   <hr>
     <p class="pt-3"><strong>There were no results for {{ name }} in this timeframe.</strong></p>
@@ -26,7 +26,7 @@
   </table>
   {% endif %}
   <!-- links -->
-    <p><a href="{{ url_for('supv', name=supvname) }}">Go back to the Supvervisor Hub</a></p>
+    <p><a href="{{ url_for('supv', supvname=supvname) }}">Go back to the Supvervisor Hub</a></p>
 	<p><a href="{{ url_for('index') }}">Go back to the Main Hub</a></p>
   <hr>
 </div>

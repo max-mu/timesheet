@@ -62,7 +62,7 @@ class LoginForm(FlaskForm):
     password = PasswordField(label='Password', validators=[InputRequired()])
     login = SubmitField(label='Login')
 
-# Generates the list of names of employees for HRForm
+# Generates the list of names of employees for FetchForm
 def get_name_choices():
     choices = [('', '')]
     list = Employees.query.order_by(Employees.name).distinct()
@@ -70,29 +70,10 @@ def get_name_choices():
         choices.append((data.name, data.name))
     return choices
 
-# HR Form
-class HRForm(FlaskForm):
+# Fetch Form
+class FetchForm(FlaskForm):
     name = SelectField(label='Name of the employee', 
         validators=[InputRequired()], choices=get_name_choices())
-    dateBegin = DateField(label='First date you want your search to contain (formatted as mm/dd/yyyy)', 
-        validators=[InputRequired()], format='%m/%d/%Y')
-    dateEnd = DateField(label='Last date you want your search to contain (formatted as mm/dd/yyyy)', 
-        validators=[InputRequired()], format='%m/%d/%Y')
-    submit = SubmitField(label='Submit')
-
-super = ''
-def supv_name_choices():
-    choices = [('', '')]
-    list = Employees.query.order_by(Employees.name).filter_by(supervisor=super).distinct()
-    print(super)
-    for data in list:
-        choices.append((data.name, data.name))
-    return choices
-
-# Supervisor Form
-class SupvForm(FlaskForm):
-    name = SelectField(label='Name of the employee', 
-        validators=[InputRequired()], choices=supv_name_choices())
     dateBegin = DateField(label='First date you want your search to contain (formatted as mm/dd/yyyy)', 
         validators=[InputRequired()], format='%m/%d/%Y')
     dateEnd = DateField(label='Last date you want your search to contain (formatted as mm/dd/yyyy)', 
@@ -177,7 +158,7 @@ def hrlogin():
 # HR Hub route
 @app.route('/hr', methods=['GET', 'POST'])
 def hr():
-    form = HRForm(request.form)
+    form = FetchForm(request.form)
     message = ''
     if request.method == 'POST' and form.validate_on_submit():
         name = form.name.data
@@ -223,22 +204,25 @@ def supvlogin():
 # Supervisor Hub route
 @app.route('/supv/<supvname>', methods=['GET', 'POST'])
 def supv(supvname):
-    form = SupvForm(request.form)
-    global super
-    super = supvname
+    form = FetchForm(request.form)
     message = ''
     if request.method == 'POST' and form.validate_on_submit():
         name = form.name.data
-        dateBegin = form.dateBegin.data
-        dateEnd = form.dateEnd.data
-        return redirect( url_for('supvresults', supvname=supvname, name=name, dateBegin=dateBegin, dateEnd=dateEnd))
+        data = Employees.query.filter_by(name=name).first() # There should only be 1 result
+        super = data.supervisor
+        if super == supvname:
+            dateBegin = form.dateBegin.data
+            dateEnd = form.dateEnd.data
+            return redirect( url_for('supvresults', supvname=supvname, name=name, dateBegin=dateBegin, dateEnd=dateEnd))
+        else:
+            message = 'You are not a supervisor for this employee.'
     # If the user input something incorrectly, one of these errors will be printed                
     elif request.method == 'POST' and (not form.validate_on_submit()):
         message = 'Please formate the date(s) as mm/dd/yyyy.'
     return render_template('supv.html', form=form, message=message)
 
 # Supervisor Results route
-@app.route('/hrresults/<supvname>/<name>/<dateBegin>/<dateEnd>', methods=['GET', 'POST'])
+@app.route('/supvresults/<supvname>/<name>/<dateBegin>/<dateEnd>', methods=['GET', 'POST'])
 def supvresults(supvname, name, dateBegin, dateEnd):
     list = Timesheet.query.filter_by(name=name).order_by(Timesheet.date).all()
     begin = datetime.strptime(dateBegin, '%Y-%m-%d').date()
