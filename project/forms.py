@@ -17,6 +17,7 @@ class HoursForm(FlaskForm):
 class LoginForm(FlaskForm):
     email = StringField(label='Email Address', validators=[InputRequired()])
     password = PasswordField(label='Password', validators=[InputRequired()])
+    choice = RadioField(validators=[InputRequired()], choices=[('hr', 'HR'), ('supv', 'Supervisor')])
     login = SubmitField(label='Login')
 
 # Generates the list of names of employees for FetchForm

@@ -1,0 +1,23 @@
+{% extends "bootstrap/base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+{% block content %}
+<div class="container">
+  <h3 class="pt-3">Login</h3>
+  <hr>
+    <form action="POST" id="LoginForm" action="{{ url_for('loginsuccess') }}">
+    <div class="form-group">
+      {{ wtf.form_field(form.email, type='email', class='form-check-label') }}
+    </div>
+    <div class="form-group">
+      {{ wtf.form_field(form.password, type='password', class='form-check-label') }}
+    </div>
+    <div class="form-check form-check-inline">
+      {{ wtf.form_field(form.choice, type='radio', class='form-check-label') }}
+    </div>
+    <button type="login" class="btn btn-primary">Login</button>
+    </form>
+    <!-- links -->
+      <p><a href="{{ url_for('index') }}">Go back to the Main Hub</a></p>
+  <hr>
+</div>
+{% endblock %}

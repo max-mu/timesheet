@@ -68,6 +68,29 @@ def hours():
 def confirm():
     return render_template('confirm.html')
 
+# Login route
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    form = LoginForm(request.form)
+    message = ''
+    if request.method == 'POST' and form.validate_on_submit():
+        email = form.email.data
+        password = form.password.data
+        # result is a (Login, SQ query) tuple
+        # The SQ query is not used here
+        result = restrict_login(email, password, 'hr')
+        if result[0] == Login.AUTH: # Valid login, in HR
+            return redirect( url_for('hr'))
+        elif result[0] == Login.UNAUTH: # Valid login, not in HR
+            message = 'You are not in the HR department. If you meant to submit your hours, go back and click on the correct link.'
+        else:
+            message = 'Invalid email/password.'
+    return render_template('login.html', form=form, message=message)
+
+@app.route('/loginsuccess', methods=['POST'])
+def loginsuccess():
+    pass
+
 # HR Login route
 @app.route('/hrlogin', methods=['GET', 'POST'])
 def hrlogin():
@@ -166,6 +189,7 @@ def supvresults(supvname, name, dateBegin, dateEnd):
             filtered.append(data)
     return render_template('supvresults.html', filtered=filtered, supvname=supvname, name=name, isEmpty=(len(filtered) > 0))
 
+# Supervisor Approval/Unapproval route
 @app.route('/supvedits/<supvname>/<name>', methods=['POST'])
 def supvedits(supvname, name):
     date = request.form['date']
