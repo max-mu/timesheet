@@ -247,5 +247,6 @@ def supvedits(supvname, name):
             entry.approval = 'No'
         db.session.commit()
     return render_template('supvedits.html', supvname=supvname, choice=choice, redun=redun)
+    
 if __name__ == '__main__':
     app.run()
