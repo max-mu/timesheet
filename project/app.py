@@ -7,12 +7,12 @@ from flask_wtf import FlaskForm
 from wtforms.validators import InputRequired
 from datetime import datetime
 import enum
+from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
 # TODO: Change this key in the end
-app.config['SECRET_KEY'] = 'not a secure key'
+app.config['SECRET_KEY'] = 'not a secure key'    
 Bootstrap(app)
-
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///timesheet.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 db = SQLAlchemy(app)
@@ -22,7 +22,7 @@ class Login(enum.Enum):
     INVALID = 2
     LOGINFAIL = 3
 
-# Employee Table
+# Employee Model
 class Employees(db.Model):
     __tablename__ = 'Employees'
     name = db.Column(db.String)
@@ -32,7 +32,7 @@ class Employees(db.Model):
     supervisor = db.Column(db.String)
     issupervisor = db.Column(db.Integer) # 0 for not a supervisor, 1 for supervisor
 
-# Timesheet Table
+# Timesheet Model
 class Timesheet(db.Model):
     __tablename__ = "Timesheet"
     name = db.Column(db.String, primary_key=True)
@@ -56,14 +56,8 @@ class HoursForm(FlaskForm):
     approved = HiddenField()
     submit = SubmitField(label='Submit')
 
-# HR Login Form
-class HRLoginForm(FlaskForm):
-    email = StringField(label='Email Address', validators=[InputRequired()])
-    password = PasswordField(label='Password', validators=[InputRequired()])
-    login = SubmitField(label='Login')
-
-# Supervisor Login Form
-class SupvLoginForm(FlaskForm):
+# Login Form
+class LoginForm(FlaskForm):
     email = StringField(label='Email Address', validators=[InputRequired()])
     password = PasswordField(label='Password', validators=[InputRequired()])
     login = SubmitField(label='Login')
@@ -86,6 +80,25 @@ class HRForm(FlaskForm):
         validators=[InputRequired()], format='%m/%d/%Y')
     submit = SubmitField(label='Submit')
 
+super = ''
+def supv_name_choices():
+    choices = [('', '')]
+    list = Employees.query.order_by(Employees.name).filter_by(supervisor=super).distinct()
+    print(super)
+    for data in list:
+        choices.append((data.name, data.name))
+    return choices
+
+# Supervisor Form
+class SupvForm(FlaskForm):
+    name = SelectField(label='Name of the employee', 
+        validators=[InputRequired()], choices=supv_name_choices())
+    dateBegin = DateField(label='First date you want your search to contain (formatted as mm/dd/yyyy)', 
+        validators=[InputRequired()], format='%m/%d/%Y')
+    dateEnd = DateField(label='Last date you want your search to contain (formatted as mm/dd/yyyy)', 
+        validators=[InputRequired()], format='%m/%d/%Y')
+    submit = SubmitField(label='Submit')
+
 # Used in submitting hours, checks to see if the email and password are a valid login
 def valid_login(e, password):
     data = Employees.query.filter_by(email=e).first() # Should only return one result anyways
@@ -99,10 +112,10 @@ def restrict_login(e, password, type):
     data = Employees.query.filter_by(email=e).first() # Should only return one result anyways
     if(data != None and data.password == password):
         if(data.ishr and type == 'HR') or (data.issupervisor and type == 'supv'):
-            return Login.VALID
+            return Login.VALID, data
         else:
-            return Login.INVALID
-    return Login.LOGINFAIL
+            return Login.INVALID, None
+    return Login.LOGINFAIL, None
 
 # Default route
 @app.route('/')
@@ -117,10 +130,10 @@ def hours():
     if request.method == 'POST' and form.validate_on_submit():
         email = form.email.data
         password = form.password.data
-        # tup is a (bool, string) pair
-        tup = valid_login(email, password)
-        if tup[0]:
-            name = tup[1]
+        # result is a (bool, string) tuple
+        result = valid_login(email, password)
+        if result[0]:
+            name = result[1]
             hours = request.form['hours']
             date = request.form['date']
             approval = 'No'
@@ -138,18 +151,24 @@ def hours():
             message = 'Please formate the date as mm/dd/yyyy.'
     return render_template('hours.html', form=form, message=message)
 
+@app.route('/confirm')
+def confirm():
+    return render_template('confirm.html')
+
 # HR Login route
 @app.route('/hrlogin', methods=['GET', 'POST'])
 def hrlogin():
-    form = HRLoginForm(request.form)
+    form = LoginForm(request.form)
     message = ''
     if request.method == 'POST' and form.validate_on_submit():
         email = form.email.data
         password = form.password.data
+        # result is a (Login, SQ query) tuple
+        # The SQ query is not used here
         result = restrict_login(email, password, 'HR')
-        if result == Login.VALID: # Valid login, in HR
+        if result[0] == Login.VALID: # Valid login, in HR
             return redirect( url_for('hr'))
-        elif result == Login.INVALID: # Valid login, not in HR
+        elif result[0] == Login.INVALID: # Valid login, not in HR
             message = 'You are not in the HR department. If you meant to submit your hours, go back and click on the correct link.'
         else:
             message = 'Invalid email/password.'
@@ -172,7 +191,7 @@ def hr():
 
 # HR Results route
 @app.route('/hrresults/<name>/<dateBegin>/<dateEnd>', methods=['GET', 'POST'])
-def hr_results(name, dateBegin, dateEnd):
+def hrresults(name, dateBegin, dateEnd):
     list = Timesheet.query.filter_by(name=name).order_by(Timesheet.date).all()
     begin = datetime.strptime(dateBegin, '%Y-%m-%d').date()
     end = datetime.strptime(dateEnd, '%Y-%m-%d').date()
@@ -183,25 +202,53 @@ def hr_results(name, dateBegin, dateEnd):
             filtered.append(data)
     return render_template('hrresults.html', filtered=filtered, name=name, isEmpty=(len(filtered) > 0))
 
+# Supervisor Login route
 @app.route('/supvlogin', methods=['GET', 'POST'])
-def supv_login():
-    form = SupvLoginForm(request.form)
+def supvlogin():
+    form = LoginForm(request.form)
     message = ''
     if request.method == 'POST' and form.validate_on_submit():
         email = form.email.data
         password = form.password.data
+        # result is a (Login, SQ query) tuple
         result = restrict_login(email, password, 'supv')
-        if result == Login.VALID: # Valid login, supervisor
-            return redirect( url_for('supv'))
-        elif result == Login.INVALID: # Valid login, supervisor
+        if result[0] == Login.VALID: # Valid login, supervisor
+            return redirect( url_for('supv', supvname=result[1].name))
+        elif result[0] == Login.INVALID: # Valid login, not a supervisor
             message = 'You are not a supervisor. If you meant to submit your hours, go back and click on the correct link.'
         else:
             message = 'Invalid email/password.'
     return render_template('supvlogin.html', form=form, message=message)
 
-@app.route('/supv', methods=['GET', 'POST'])
-def supv():
-    return render_template('supv.html')
+# Supervisor Hub route
+@app.route('/supv/<supvname>', methods=['GET', 'POST'])
+def supv(supvname):
+    form = SupvForm(request.form)
+    global super
+    super = supvname
+    message = ''
+    if request.method == 'POST' and form.validate_on_submit():
+        name = form.name.data
+        dateBegin = form.dateBegin.data
+        dateEnd = form.dateEnd.data
+        return redirect( url_for('supvresults', supvname=supvname, name=name, dateBegin=dateBegin, dateEnd=dateEnd))
+    # If the user input something incorrectly, one of these errors will be printed                
+    elif request.method == 'POST' and (not form.validate_on_submit()):
+        message = 'Please formate the date(s) as mm/dd/yyyy.'
+    return render_template('supv.html', form=form, message=message)
+
+# Supervisor Results route
+@app.route('/hrresults/<supvname>/<name>/<dateBegin>/<dateEnd>', methods=['GET', 'POST'])
+def supvresults(supvname, name, dateBegin, dateEnd):
+    list = Timesheet.query.filter_by(name=name).order_by(Timesheet.date).all()
+    begin = datetime.strptime(dateBegin, '%Y-%m-%d').date()
+    end = datetime.strptime(dateEnd, '%Y-%m-%d').date()
+    filtered = []
+    for data in list:
+        date = datetime.strptime(data.date, '%m/%d/%Y').date()
+        if begin <= date and date <= end:
+            filtered.append(data)
+    return render_template('supvresults.html', filtered=filtered, supvname=supvname, name=name, isEmpty=(len(filtered) > 0))
 
 if __name__ == '__main__':
     app.run()
