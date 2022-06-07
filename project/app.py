@@ -1,4 +1,6 @@
 from flask import request, render_template, redirect, url_for
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask_login import login_user, login_required, logout_user
 from datetime import datetime
 from __init__ import app, db
 from models import Employees, Timesheet
@@ -91,11 +93,14 @@ def logincheck():
     choice = request.form['choice']
     # result is a (Login, SQ query) tuple
     result = restrict_login(email, password, choice)
+    user = Employees.query.filter_by(email=email).first() # Should be only one result
     # Valid login, in HR
     if result[0] == Login.HR: 
+        login_user(user)
         return redirect( url_for('hr'))
     # Valid login, supervisor
     elif result[0] == Login.SUPV: 
+        login_user(user)
         return redirect( url_for('supv', supvname=result[1].name))
     # Valid login, unauthorized
     elif result[0] == Login.UNAUTH: 
@@ -109,12 +114,14 @@ def logincheck():
 
 # HR Hub route
 @app.route('/hr', methods=['GET', 'POST'])
+@login_required
 def hr():
     form = SearchForm(request.form)
     return render_template('hr.html', form=form)
 
 # HR Results route
 @app.route('/hrresults', methods=['POST'])
+@login_required
 def hrresults():
     name = request.form['name']
     dateBegin = request.form['dateBegin']
@@ -139,12 +146,14 @@ def hrresults():
 
 # Supervisor Hub route
 @app.route('/supv/<supvname>', methods=['GET', 'POST'])
+@login_required
 def supv(supvname):
     form = SearchForm(request.form)
     return render_template('supv.html', form=form, supvname=supvname)
 
 # Supervisor Results route
 @app.route('/supvresults/<supvname>', methods=['POST'])
+@login_required
 def supvresults(supvname):
     name = request.form['name']
     dateBegin = request.form['dateBegin']
@@ -177,6 +186,7 @@ def supvresults(supvname):
 
 # Supervisor Approval/Unapproval route
 @app.route('/supvedits/<supvname>', methods=['POST'])
+@login_required
 def supvedits(supvname):
     date = request.form['date']
     choice = request.form['choice']
@@ -193,5 +203,12 @@ def supvedits(supvname):
         db.session.commit()
     return render_template('supvedits.html', supvname=supvname, choice=choice, redun=redun)
     
+# Logout route
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return render_template('logout.html')
+
 if __name__ == '__main__':
     app.run()
