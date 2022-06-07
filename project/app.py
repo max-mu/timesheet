@@ -14,15 +14,15 @@ class Login(enum.Enum):
 
 # Used in submitting hours, checks to see if the email and password are a valid login
 def valid_login(e, password):
-    data = Employees.query.filter_by(email=e).first() # Should only return one result anyways
+    data = Employees.query.filter_by(email=e).first() # Should only return one result
     if(data != None and data.password == password):
         return True, data.name
     return False, ''
 
 # Used in HR/Supervisor login, checks to see if the email and password are a valid login
-# If login is valid, checks to see if the person logging in is in HR/Supervisor
+# If login is valid, checks to see if the person logging in is a supervisor/HR
 def restrict_login(e, password, type):
-    data = Employees.query.filter_by(email=e).first() # Should only return one result anyways
+    data = Employees.query.filter_by(email=e).first() # Should only return one result
     if data != None and data.password == password:
         if data.ishr and type == 'hr':
             return Login.HR, None
@@ -92,14 +92,19 @@ def logincheck():
     choice = request.form['choice']
     # result is a (Login, SQ query) tuple
     result = restrict_login(email, password, choice)
-    if result[0] == Login.HR: # Valid login, in HR
+    # Valid login, in HR
+    if result[0] == Login.HR: 
         return redirect( url_for('hr'))
-    elif result[0] == Login.SUPV: # Valid login, supervisor
+    # Valid login, supervisor
+    elif result[0] == Login.SUPV: 
         return redirect( url_for('supv', supvname=result[1].name))
-    elif result[0] == Login.UNAUTH: # Valid login, unauthorized
+    # Valid login, unauthorized
+    elif result[0] == Login.UNAUTH: 
         return redirect( url_for('login', error='unauth'))
-    elif result[0] == Login.LOGINFAIL:
+    # Invalid login
+    elif result[0] == Login.LOGINFAIL: 
         return redirect( url_for('login', error='fail')) 
+    # If the user puts in the url and doesn't put in login credentials
     else:
         return redirect( url_for('login', error='url'))
 
@@ -119,6 +124,7 @@ def hrresults():
     begin = end = None
     format_issue = False
     filtered = []
+    # Checks to see if both dates are formatted correctly
     try:
         begin = datetime.strptime(dateBegin, '%m/%d/%Y').date()
         end = datetime.strptime(dateEnd, '%m/%d/%Y').date()
@@ -126,6 +132,7 @@ def hrresults():
             date = datetime.strptime(data.date, '%m/%d/%Y').date()
             if begin <= date and date <= end:
                 filtered.append(data)
+    # If one of the dates are formatted incorrectly
     except ValueError:
         format_issue = True
     return render_template('hrresults.html', format_issue=format_issue, filtered=filtered, 
@@ -147,11 +154,14 @@ def supvresults(supvname):
     begin = end = None
     format_issue = not_assigned = False
     filtered = []
-    employ = Employees.query.filter_by(name=name).first() # Should only be one result
+    employ = Employees.query.filter_by(name=name).first() # Should only return one result
     # This will needed to be changed if there can be more than one supervisor
+    # If the supervisor not is assigned to the employee
     if employ.supervisor != supvname:
         not_assigned = True
+    # If the supervisor is assigned to the employee
     else:
+        # Checks to see if both dates are formatted correctly
         try:
             begin = datetime.strptime(dateBegin, '%m/%d/%Y').date()
             end = datetime.strptime(dateEnd, '%m/%d/%Y').date()
@@ -159,6 +169,7 @@ def supvresults(supvname):
                 date = datetime.strptime(data.date, '%m/%d/%Y').date()
                 if begin <= date and date <= end:
                     filtered.append(data)
+        # If one of the dates are formatted incorrectly
         except ValueError:
             format_issue = True
     return render_template('supvresults.html', format_issue=format_issue, 
@@ -171,8 +182,10 @@ def supvedits(supvname):
     date = request.form['date']
     choice = request.form['choice']
     entry = Timesheet.query.filter_by(date=date).filter(Timesheet.date == date).first()
+    # If the state of the record is what the user selected, redun is True
     redun = ((entry.approval == 'Yes' and choice == 'approve')
         or (entry.approval == 'No' and choice == 'unapprove'))
+    # Changes the state of the record
     if not redun:
         if choice == 'approve':
             entry.approval = 'Yes'
