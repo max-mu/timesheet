@@ -3,37 +3,44 @@
 {% block content %}
 <div class="container">
   <h3 class="pt-3">Supervisor Results</h3>
-  {% if isEmpty==False %}
+  {% if not_assigned == True %}
+    <hr>
+    <p class="pt-1"><strong>You are not assigned as a supervisor for {{ name }}.</strong></p>
+  {% elif format_issue == True %}
+    <hr>
+    <p class="pt-1"><strong>One or both of your dates were formatted incorrectly.</strong></p>
+    <p><strong>Please format your dates as mm/dd/yyyy.</strong></p>
+  {% elif empty == True %}
   <hr>
-    <p><strong>There were no results for {{ name }} in this timeframe.</strong></p>
-    <p ><strong>If you were expecting results, please double check all fields.</strong></p>
+  <p class="pt-1"><strong>There were no results for {{ name }} from {{ dateBegin }} to {{ dateEnd }}.</strong></p>
+    <p><strong>If you were expecting results, please double check all fields.</strong></p>
   {% else %}
-  <form method="POST" id="EditForm" action="{{ url_for('supvedits', supvname=supvname, name=name) }}">
+  <form method="POST" id="EditForm" action="{{ url_for('supvedits', supvname=supvname) }}">
   <table class="table">
     <tr>
-        <th></th>
-        <th>Name</th>
-        <th>Hours</th>
-        <th>Date</th>
-        <th>Approval Status</th>
+      <th></th>
+      <th>Name</th>
+      <th>Hours</th>
+      <th>Date</th>
+      <th>Approval Status</th>
     </tr>
-      {% for data in filtered %}
+    {% for data in filtered %}
       <tr>
-          <td class="center-align"><input type="radio" name="date" value="{{ data.date }}" required></td>
-          <td>{{ data.name }}</td>
-          <td>{{ data.hours }}</td>
-          <td>{{ data.date }}</td>
-          <td>{{ data.approval }}</td>
+        <td class="center-align"><input type="radio" name="date" value="{{ data.date }}" required></td>
+        <td>{{ data.name }}</td>
+        <td>{{ data.hours }}</td>
+        <td>{{ data.date }}</td>
+        <td>{{ data.approval }}</td>
       </tr>
-      {% endfor %}
+    {% endfor %}
   </table>
 
   <p>If you would like to change the approval status of one of the entries above, select it.</p>
   <div class="form-check form-check-inline">
-  <label class="form-check-label"><input class="form-check-input" type="radio" name="choice" value="approve" required> Approve it</label>
+    <label class="form-check-label"><input class="form-check-input" type="radio" name="choice" value="approve" required> Approve it</label>
   </div>
   <div class="form-check form-check-inline">
-  <label class="form-check-label"><input class="form-check-input" type="radio" name="choice" value="unapprove" required> Unapprove it</label>
+    <label class="form-check-label"><input class="form-check-input" type="radio" name="choice" value="unapprove" required> Unapprove it</label>
   </div>
 
   <div class="form-group">
@@ -41,9 +48,9 @@
   </div>
   </form>
   {% endif %}
-  <!-- links -->
-    <p><a href="{{ url_for('supv', supvname=supvname) }}">Go back to the Supvervisor Hub</a></p>
-	  <p><a href="{{ url_for('index') }}">Go back to the Main Hub</a></p>
+  
+  <p><a href="{{ url_for('supv', supvname=supvname) }}">Go back to the Supvervisor Hub</a></p>
+	<p><a href="{{ url_for('index') }}">Go back to the Main Hub</a></p>
   <hr>
 </div>
 {% endblock %}

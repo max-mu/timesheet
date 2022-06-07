@@ -3,31 +3,34 @@
 {% block content %}
 <div class="container">
   <h3 class="pt-3">HR Results</h3>
-  {% if isEmpty==False %}
-  <hr>
-    <p class="pt-3"><strong>There were no results for {{ name }} in this timeframe.</strong></p>
-    <p ><strong>If you were expecting results, please double check all fields.</strong></p>
+  {% if format_issue == True %}
+    <hr>
+    <p class="pt-1"><strong>One or both of your dates were formatted incorrectly.</strong></p>
+    <p><strong>Please format your dates as mm/dd/yyyy.</strong></p>
+  {% elif empty == True %}
+    <hr>
+    <p class="pt-1"><strong>There were no results for {{ name }} from {{ dateBegin }} to {{ dateEnd }}.</strong></p>
+    <p><strong>If you were expecting results, please double check all fields.</strong></p>
   {% else %}
-  <table class="table">
-    <tr>
+    <table class="table">
+      <tr>
         <th>Name</th>
         <th>Hours</th>
         <th>Date</th>
         <th>Approval Status</th>
-    </tr>
+      </tr>
       {% for data in filtered %}
       <tr>
-          <td>{{ data.name }}</td>
-          <td>{{ data.hours }}</td>
-          <td>{{ data.date }}</td>
-          <td>{{ data.approval }}</td>
+        <td>{{ data.name }}</td>
+        <td>{{ data.hours }}</td>
+        <td>{{ data.date }}</td>
+        <td>{{ data.approval }}</td>
       </tr>
       {% endfor %}
-  </table>
+    </table>
   {% endif %}
-  <!-- links -->
-    <p><a href="{{ url_for('hr') }}">Go back to the HR Hub</a></p>
-	  <p><a href="{{ url_for('index') }}">Go back to the Main Hub</a></p>
+  <p><a href="{{ url_for('hr') }}">Go back to the HR Hub</a></p>
+	<p><a href="{{ url_for('index') }}">Go back to the Main Hub</a></p>
   <hr>
 </div>
 {% endblock %}

@@ -5,36 +5,15 @@
   <h3 class="pt-3">Login</h3>
   <hr>
     <p><strong>{{ message }}</strong></p>
-    <form action="POST" id="LoginForm" action="{{ url_for('logincheck') }}">
-    <div class="form-group">
-      <label for="email">Email Address</label>
-      <input type="email" id="email" class="form-control" required/>
-    </div>
-    <div class="form-group">
-      <label for="password">Password</label>
-      <input type="password" id="password" class="form-control" required/>
-    </div>
-    <div class="form-check-inline">
-      <div class="form-check">
-        <input class="form-check-input" type="radio" name="choice" id="hr" value="hr" checked>
-        <label class="form-check-label" for="hr">
-          HR
-        </label>
-      </div>
-      <div class="form-check">
-        <input class="form-check-input" type="radio" name="choice" id="supv" value="supv">
-        <label class="form-check-label" for="supv">
-          Supervisor
-        </label>
-      </div>
-    </div>
-    <div class="form-group">
-      <p class="pt-1"> </p>
-      <button type="login" class="btn btn-primary">Login</button>
-    </div>
+    <form method="POST" id="LoginForm" action="{{ url_for('logincheck') }}">
+      {{ form.csrf_token }}
+			{{ wtf.form_field(form.email) }}
+			{{ wtf.form_field(form.password) }}
+			{{ wtf.form_field(form.choice) }}
+      <p class="pt-1"></p>
+			{{ wtf.form_field(form.login) }}
     </form>
-    <!-- links -->
-      <p><a href="{{ url_for('index') }}">Go back to the Main Hub</a></p>
+    <p class="pt-3"><a href="{{ url_for('index') }}">Go back to the Main Hub</a></p>
   <hr>
 </div>
 {% endblock %}
