@@ -7,9 +7,10 @@ from forms import HoursForm, LoginForm, FetchForm
 import enum
 
 class Login(enum.Enum):
-    AUTH = 1
-    UNAUTH = 2
-    LOGINFAIL = 3
+    HR = 1
+    SUPV = 2
+    UNAUTH = 3
+    LOGINFAIL = 4
 
 # Used in submitting hours, checks to see if the email and password are a valid login
 def valid_login(e, password):
@@ -22,9 +23,11 @@ def valid_login(e, password):
 # If login is valid, checks to see if the person logging in is in HR/Supervisor
 def restrict_login(e, password, type):
     data = Employees.query.filter_by(email=e).first() # Should only return one result anyways
-    if(data != None and data.password == password):
-        if(data.ishr and type == 'hr') or (data.issupervisor and type == 'supv'):
-            return Login.AUTH, data
+    if data != None and data.password == password:
+        if data.ishr and type == 'hr':
+            return Login.HR, None
+        elif data.issupervisor and type == 'supv':
+            return Login.SUPV, data
         else:
             return Login.UNAUTH, None
     return Login.LOGINFAIL, None
@@ -69,27 +72,50 @@ def confirm():
     return render_template('confirm.html')
 
 # Login route
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    form = LoginForm(request.form)
+@app.route('/login/<error>')
+def login(error):
     message = ''
-    if request.method == 'POST' and form.validate_on_submit():
-        email = form.email.data
-        password = form.password.data
-        # result is a (Login, SQ query) tuple
-        # The SQ query is not used here
-        result = restrict_login(email, password, 'hr')
-        if result[0] == Login.AUTH: # Valid login, in HR
-            return redirect( url_for('hr'))
-        elif result[0] == Login.UNAUTH: # Valid login, not in HR
-            message = 'You are not in the HR department. If you meant to submit your hours, go back and click on the correct link.'
-        else:
-            message = 'Invalid email/password.'
-    return render_template('login.html', form=form, message=message)
+    print(error)
+    if error == 'unauth':
+        message = 'You are not authorized to login in as your selection. \
+        If you meant to submit your hours, go back to the main hub and click on the correct link.'
+    elif error == 'fail':
+        message = 'Invalid email/password.'
+    elif error == 'url':
+        message = 'You must enter your login credentials in order to log in.'
+    return render_template('login.html', message=message)
+
+@app.route('/logincheck', methods=['POST'])
+def logincheck():
+    email = request.form['email']
+    password = request.form['password']
+    choice = request.form['choice']
+    # result is a (Login, SQ query) tuple
+    result = restrict_login(email, password, choice)
+    if result[0] == Login.HR: # Valid login, in HR
+        return redirect( url_for('loginsucess'))
+    elif result[0] == Login.SUPV: # Valid login, supervisor
+        return redirect( url_for('loginsucess'))
+    elif result[0] == Login.UNAUTH: # Valid login, unauthorized
+        return redirect( url_for('login', error='unauth'))
+    elif result[0] == Login.LOGINFAIL:
+        return redirect( url_for('login', error='fail')) 
+    else:
+        return redirect( url_for('login', error='url'))
 
 @app.route('/loginsuccess', methods=['POST'])
 def loginsuccess():
-    pass
+    form = FetchForm(request.form)
+    message = ''
+    if request.method == 'POST' and form.validate_on_submit():
+        name = form.name.data
+        dateBegin = form.dateBegin.data
+        dateEnd = form.dateEnd.data
+        return redirect( url_for('hrresults', name=name, dateBegin=dateBegin, dateEnd=dateEnd))
+    # If the user input something incorrectly, one of these errors will be printed                
+    elif request.method == 'POST' and (not form.validate_on_submit()):
+        message = 'Please formate the date(s) as mm/dd/yyyy.'
+    return render_template('hr.html', form=form, message=message)
 
 # HR Login route
 @app.route('/hrlogin', methods=['GET', 'POST'])
@@ -102,10 +128,11 @@ def hrlogin():
         # result is a (Login, SQ query) tuple
         # The SQ query is not used here
         result = restrict_login(email, password, 'hr')
-        if result[0] == Login.AUTH: # Valid login, in HR
+        if result[0] == Login.HR: # Valid login, in HR
             return redirect( url_for('hr'))
         elif result[0] == Login.UNAUTH: # Valid login, not in HR
-            message = 'You are not in the HR department. If you meant to submit your hours, go back and click on the correct link.'
+            message = 'You are not in the HR department. \
+                If you meant to submit your hours, go back and click on the correct link.'
         else:
             message = 'Invalid email/password.'
     return render_template('hrlogin.html', form=form, message=message)
@@ -148,10 +175,11 @@ def supvlogin():
         password = form.password.data
         # result is a (Login, SQ query) tuple
         result = restrict_login(email, password, 'supv')
-        if result[0] == Login.AUTH: # Valid login, supervisor
+        if result[0] == Login.SUPV: # Valid login, supervisor
             return redirect( url_for('supv', supvname=result[1].name))
         elif result[0] == Login.UNAUTH: # Valid login, not a supervisor
-            message = 'You are not a supervisor. If you meant to submit your hours, go back and click on the correct link.'
+            message = 'You are not a supervisor. \
+                If you meant to submit your hours, go back and click on the correct link.'
         else:
             message = 'Invalid email/password.'
     return render_template('supvlogin.html', form=form, message=message)
