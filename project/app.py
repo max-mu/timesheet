@@ -1,5 +1,4 @@
 from flask import request, render_template, redirect, url_for
-from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 from __init__ import app, db
 from models import Employees, Timesheet
