@@ -5,14 +5,14 @@
   <h3 class="pt-3">Supervisor Results</h3>
   {% if not_assigned == True %}
     <hr>
-    <p class="pt-1"><strong>You are not assigned as a supervisor for {{ name }}.</strong></p>
+    <p><strong>You are not assigned as a supervisor for {{ name }}.</strong></p>
   {% elif format_issue == True %}
     <hr>
     <p class="pt-1"><strong>One or both of your dates were formatted incorrectly.</strong></p>
     <p><strong>Please format your dates as mm/dd/yyyy.</strong></p>
   {% elif empty == True %}
-  <hr>
-  <p class="pt-1"><strong>There were no results for {{ name }} from {{ dateBegin }} to {{ dateEnd }}.</strong></p>
+    <hr>
+    <p><strong>There were no results for {{ name }} from {{ dateBegin }} to {{ dateEnd }}.</strong></p>
     <p><strong>If you were expecting results, please double check all fields.</strong></p>
   {% else %}
   <form method="POST" id="EditForm" action="{{ url_for('supvedits', supvname=supvname) }}">

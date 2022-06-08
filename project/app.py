@@ -127,21 +127,16 @@ def hrresults():
     dateBegin = request.form['dateBegin']
     dateEnd = request.form['dateEnd']
     list = Timesheet.query.filter_by(name=name).order_by(Timesheet.date).all()
-    begin = end = None
-    format_issue = False
     filtered = []
-    # Checks to see if both dates are formatted correctly
-    try:
-        begin = datetime.strptime(dateBegin, '%m/%d/%Y').date()
-        end = datetime.strptime(dateEnd, '%m/%d/%Y').date()
+    begin = datetime.strptime(dateBegin, '%Y-%m-%d').date()
+    end = datetime.strptime(dateEnd, '%Y-%m-%d').date()
+    end_first = (end < begin)
+    if not end_first:
         for data in list:
-            date = datetime.strptime(data.date, '%m/%d/%Y').date()
+            date = datetime.strptime(data.date, '%Y-%m-%d').date()
             if begin <= date and date <= end:
                 filtered.append(data)
-    # If one of the dates are formatted incorrectly
-    except ValueError:
-        format_issue = True
-    return render_template('hrresults.html', format_issue=format_issue, filtered=filtered, 
+    return render_template('hrresults.html', end_first=end_first, filtered=filtered, 
         name=name, dateBegin=dateBegin, dateEnd=dateEnd, empty=(len(filtered) == 0))
 
 # Supervisor Hub route
@@ -159,28 +154,19 @@ def supvresults(supvname):
     dateBegin = request.form['dateBegin']
     dateEnd = request.form['dateEnd']
     list = Timesheet.query.filter_by(name=name).order_by(Timesheet.date).all()
-    begin = end = None
-    format_issue = not_assigned = False
     filtered = []
+    begin = datetime.strptime(dateBegin, '%Y-%m-%d').date()
+    end = datetime.strptime(dateEnd, '%Y-%m-%d').date()
+    end_first = (end < begin)
     employ = Employees.query.filter_by(name=name).first() # Should only return one result
     # This will needed to be changed if there can be more than one supervisor
-    # If the supervisor not is assigned to the employee
-    if employ.supervisor != supvname:
-        not_assigned = True
-    # If the supervisor is assigned to the employee
-    else:
-        # Checks to see if both dates are formatted correctly
-        try:
-            begin = datetime.strptime(dateBegin, '%m/%d/%Y').date()
-            end = datetime.strptime(dateEnd, '%m/%d/%Y').date()
-            for data in list:
-                date = datetime.strptime(data.date, '%m/%d/%Y').date()
-                if begin <= date and date <= end:
-                    filtered.append(data)
-        # If one of the dates are formatted incorrectly
-        except ValueError:
-            format_issue = True
-    return render_template('supvresults.html', format_issue=format_issue, 
+    not_assigned = (employ.supervisor != supvname)
+    if not not_assigned and not end_first:
+        for data in list:
+            date = datetime.strptime(data.date, '%Y-%m-%d').date()
+            if begin <= date and date <= end:
+                filtered.append(data)
+    return render_template('supvresults.html', end_first=end_first, 
         not_assigned=not_assigned, filtered=filtered, supvname=supvname, name=name, 
         dateBegin=dateBegin, dateEnd=dateEnd, empty=(len(filtered) == 0))
 

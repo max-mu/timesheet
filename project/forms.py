@@ -8,8 +8,7 @@ class HoursForm(FlaskForm):
     email = StringField(label='Email Address', validators=[InputRequired()])
     password = PasswordField(label='Password', validators=[InputRequired()])
     hours = FloatField(label='Hours you worked', validators=[InputRequired()])
-    date = DateField(label='Date (formatted as mm/dd/yyyy)', 
-        validators=[InputRequired()], format='%m/%d/%Y')
+    date = DateField(label='Date', validators=[InputRequired()], format='%Y-%m-%d')
     approved = HiddenField()
     submit = SubmitField(label='Submit')
 
@@ -33,8 +32,8 @@ def get_name_choices():
 class SearchForm(FlaskForm):
     name = SelectField(label='Name of the employee', 
         validators=[InputRequired()], choices=get_name_choices())
-    dateBegin = DateField(label='First date you want your search to contain (formatted as mm/dd/yyyy)', 
-        validators=[InputRequired()], format='%m/%d/%Y')
-    dateEnd = DateField(label='Last date you want your search to contain (formatted as mm/dd/yyyy)', 
-        validators=[InputRequired()], format='%m/%d/%Y')
+    dateBegin = DateField(label='First date you want your search to contain', 
+        validators=[InputRequired()], format='%Y-%m-%d')
+    dateEnd = DateField(label='Last date you want your search to contain', 
+        validators=[InputRequired()], format='%Y-%m-%d')
     submit = SubmitField(label='Submit')

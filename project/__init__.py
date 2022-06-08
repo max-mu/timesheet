@@ -3,6 +3,7 @@ from flask_bootstrap import Bootstrap
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from mysql import connector
+from mysql.connector import Error
 
 app = Flask(__name__)
 # TODO: Change this key in the end
@@ -18,3 +19,4 @@ login_manager = LoginManager(app)
 @login_manager.user_loader
 def load_user(user_id):
     return Employees.query.get(user_id)
+
