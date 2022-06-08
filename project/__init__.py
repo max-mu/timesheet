@@ -4,6 +4,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from mysql import connector
 from mysql.connector import Error
+from flaskext.mysql import MySQL
 
 app = Flask(__name__)
 # TODO: Change this key in the end
@@ -21,7 +22,7 @@ def load_user(user_id):
     return Employees.query.get(user_id)
 
 try:
-    connection = connector.connect(host='127.0.0.1', database='timesheet',
+    connection = connector.connect(host='localhost', database='ksl-data',
          user='root', password='9@YNdyF4xS$D6V')
     if connection.is_connected():
         db_Info = connection.get_server_info()
