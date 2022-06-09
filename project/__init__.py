@@ -10,7 +10,10 @@ app = Flask(__name__)
 # TODO: Change this key in the end
 app.config['SECRET_KEY'] = 'not a secure key'    
 Bootstrap(app)
+# SQLite
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///timesheet.db'
+# MySQL
+# app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:9AYNdyF4xS$D6V@127.0.0.1/ksl-data'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 db = SQLAlchemy(app)
 
@@ -22,8 +25,8 @@ def load_user(user_id):
     return Employees.query.get(user_id)
 
 try:
-    connection = connector.connect(host='localhost', database='ksl-data',
-         user='root', password='9@YNdyF4xS$D6V')
+    connection = connector.connect(host='127.0.0.1', database='ksl-data',
+         user='root', password='9AYNdyF4xS$D6V')
     if connection.is_connected():
         db_Info = connection.get_server_info()
         print("Connected to MySQL Server version ", db_Info)
