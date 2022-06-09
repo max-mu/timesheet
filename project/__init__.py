@@ -13,7 +13,7 @@ Bootstrap(app)
 # SQLite
 # app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///timesheet.db'
 # MySQL
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:9AYNdyF4xS$D6V@127.0.0.1/ksl-data'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:9AYNdyF4xS$D6V@localhost/ksl-data'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 db = SQLAlchemy(app)
 
@@ -31,7 +31,6 @@ app.config['MYSQL_DATABASE_DB'] = 'ksl-data'
 app.config['MYSQL_DATABASE_HOST'] = 'localhost'
 mysql = MySQL(app)
 '''
-
 '''
 try:
     connection = connector.connect(host='127.0.0.1', database='ksl-data',
