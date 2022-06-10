@@ -1,10 +1,11 @@
 from wtforms import SubmitField, StringField, PasswordField, DateField, FloatField, HiddenField, SelectField, RadioField
 from flask_wtf import FlaskForm
-from wtforms.validators import InputRequired
+from wtforms.validators import InputRequired, EqualTo
 from models import Employees
 
 # Hours Submission Form
 class HoursForm(FlaskForm):
+    id = HiddenField()
     email = StringField(label='Email Address', validators=[InputRequired()])
     password = PasswordField(label='Password', validators=[InputRequired()])
     hours = FloatField(label='Hours you worked', validators=[InputRequired()])
@@ -36,4 +37,19 @@ class SearchForm(FlaskForm):
         validators=[InputRequired()], format='%Y-%m-%d')
     dateEnd = DateField(label='Last date you want your search to contain', 
         validators=[InputRequired()], format='%Y-%m-%d')
+    submit = SubmitField(label='Submit')
+
+# Onboarding Form
+class OnboardingForm(FlaskForm):
+    id = HiddenField()
+    name = StringField(label='Name', validators=[InputRequired()])
+    email = HiddenField()
+    password = PasswordField(label='Password', validators=[InputRequired(), 
+        EqualTo('confirm', message="The passwords don't match.")])
+    confirm = PasswordField(label='Confirm Password', validators=[InputRequired()])
+    address = StringField(label='Address', validators=[InputRequired()])
+    phone_num = StringField(label='Phone Number', validators=[InputRequired()])
+    is_hr = HiddenField()
+    is_supv = HiddenField()
+    supv = HiddenField()
     submit = SubmitField(label='Submit')

@@ -4,7 +4,7 @@ from flask_login import login_user, login_required, logout_user, current_user
 from datetime import datetime
 from __init__ import app, db
 from models import Employees, Timesheet
-from forms import HoursForm, LoginForm, SearchForm
+from forms import HoursForm, LoginForm, SearchForm, OnboardingForm
 import enum
 
 class Login(enum.Enum):
@@ -56,7 +56,7 @@ def hours():
             record = Timesheet(name, hours, date, approval)
             db.session.add(record)
             db.session.commit()
-            return render_template('confirm.html')
+            return redirect(url_for('confirm'))
         else:
             message = 'Invalid email/password.'
     # If the user input something incorrectly, one of these errors will be printed
@@ -195,6 +195,18 @@ def supvedits():
 def logout():
     logout_user()
     return render_template('logout.html')
+
+
+@app.route('/onboarding', methods=['GET', 'POST'])
+def onboarding():
+    form = OnboardingForm(request.form)
+    message = ''
+    if request.method == 'POST' and form.validate_on_submit():
+        return redirect(url_for('confirm'))
+    # If the user input something incorrectly, one of these errors will be printed
+    elif request.method == 'POST' and (not form.validate_on_submit()):
+        message = 'Your passwords did not match.'
+    return render_template('onboarding.html', form=form, message=message)
 
 if __name__ == '__main__':
     app.run()
