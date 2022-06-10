@@ -158,7 +158,6 @@ def supvresults(supvname):
     begin = datetime.strptime(dateBegin, '%Y-%m-%d').date()
     end = datetime.strptime(dateEnd, '%Y-%m-%d').date()
     end_first = (end < begin)
-    print(end_first)
     employ = Employees.query.filter_by(name=name).first() # Should only return one result
     # This will needed to be changed if there can be more than one supervisor
     not_assigned = (employ.supervisor != supvname)
