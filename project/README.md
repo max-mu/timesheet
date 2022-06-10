@@ -11,10 +11,5 @@ pip install flask_sqlalchemy
 pip install flask_login
 
 MySQL Installations
-pip install flask-mysql
-pip install mysql-connector
-pip install mysql-connector-python
-pip install mysql-connector-python-rf
-pip install pymysql
-pip install cryptography
-
+sudo apt-get install mysql-server
+sudo apt-get install libmysqlclient-dev

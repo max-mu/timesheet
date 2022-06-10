@@ -1,7 +1,11 @@
 from flask import Flask
+'''
 from flaskext.mysql import MySQL
 from mysql import connector
 from mysql.connector import Error
+'''
+from flask_mysqldb import MySQL
+
 
 app = Flask(__name__)
 app.config['MYSQL_DATABASE_USER'] = 'user'
