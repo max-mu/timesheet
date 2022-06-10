@@ -1,6 +1,6 @@
 from flask import request, render_template, redirect, url_for
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask_login import login_user, login_required, logout_user
+from flask_login import login_user, login_required, logout_user, current_user
 from datetime import datetime
 from __init__ import app, db
 from models import Employees, Timesheet
@@ -140,16 +140,16 @@ def hrresults():
         name=name, dateBegin=dateBegin, dateEnd=dateEnd, empty=(len(filtered) == 0))
 
 # Supervisor Hub route
-@app.route('/supv/<supvname>', methods=['GET', 'POST'])
+@app.route('/supv', methods=['GET', 'POST'])
 @login_required
-def supv(supvname):
+def supv():
     form = SearchForm(request.form)
-    return render_template('supv.html', form=form, supvname=supvname)
+    return render_template('supv.html', form=form, supvname=current_user.name)
 
 # Supervisor Results route
-@app.route('/supvresults/<supvname>', methods=['POST'])
+@app.route('/supvresults', methods=['POST'])
 @login_required
-def supvresults(supvname):
+def supvresults():
     name = request.form['name']
     dateBegin = request.form['dateBegin']
     dateEnd = request.form['dateEnd']
@@ -160,20 +160,20 @@ def supvresults(supvname):
     end_first = (end < begin)
     employ = Employees.query.filter_by(name=name).first() # Should only return one result
     # This will needed to be changed if there can be more than one supervisor
-    not_assigned = (employ.supervisor != supvname)
+    not_assigned = (employ.supervisor != current_user.name)
     if not not_assigned and not end_first:
         for data in list:
             date = datetime.strptime(data.date, '%Y-%m-%d').date()
             if begin <= date and date <= end:
                 filtered.append(data)
     return render_template('supvresults.html', end_first=end_first, 
-        not_assigned=not_assigned, filtered=filtered, supvname=supvname, name=name, 
+        not_assigned=not_assigned, filtered=filtered, supvname=current_user.name, name=name, 
         dateBegin=dateBegin, dateEnd=dateEnd, empty=(len(filtered) == 0))
 
 # Supervisor Approval/Unapproval route
-@app.route('/supvedits/<supvname>', methods=['POST'])
+@app.route('/supvedits', methods=['POST'])
 @login_required
-def supvedits(supvname):
+def supvedits():
     date = request.form['date']
     choice = request.form['choice']
     entry = Timesheet.query.filter_by(date=date).filter(Timesheet.date == date).first()
@@ -187,7 +187,7 @@ def supvedits(supvname):
         else:
             entry.approval = 'No'
         db.session.commit()
-    return render_template('supvedits.html', supvname=supvname, choice=choice, redun=redun)
+    return render_template('supvedits.html', supvname=current_user.name, choice=choice, redun=redun)
     
 # Logout route
 @app.route('/logout')
