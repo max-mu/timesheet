@@ -11,7 +11,7 @@ Bootstrap(app)
 # SQLite
 # app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///timesheet.db'
 # MySQL
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://user:nmg130-Nv@127.0.0.1/ksl-data'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:Test1234!@127.0.0.1/mysql'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 db = SQLAlchemy(app)
 
@@ -22,12 +22,11 @@ login_manager = LoginManager(app)
 def load_user(user_id):
     return Employees.query.get(user_id)
 
-app.config['MYSQL_DATABASE_USER'] = 'root'
-app.config['MYSQL_DATABASE_PASSWORD'] = '9AYNdyF4xS$D6V'
-app.config['MYSQL_DATABASE_DB'] = 'ksl-data'
-app.config['MYSQL_DATABASE_HOST'] = '127.0.0.1'
+app.config['MYSQL_USER'] = 'root'
+app.config['MYSQL_PASSWORD'] = 'Test1234!'
+app.config['MYSQL_DB'] = 'mysql'
+app.config['MYSQL_HOST'] = '127.0.0.1'
 mysql = MySQL(app)
-cur = mysql.connection.cursor()
 
 '''try:
     connection = connector.connect(host='127.0.0.1', database='ksl-data',

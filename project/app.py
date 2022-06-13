@@ -2,10 +2,12 @@ from flask import request, render_template, redirect, url_for
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import login_user, login_required, logout_user
 from datetime import datetime
-from __init__ import app, db
+from __init__ import app, db, mysql
 from models import Employees, Timesheet
 from forms import HoursForm, LoginForm, SearchForm
 import enum
+
+cur = mysql.connection.cursor()
 
 class Login(enum.Enum):
     HR = 1
@@ -36,6 +38,7 @@ def restrict_login(e, password, type):
 # Default route
 @app.route('/')
 def index():
+    cur = mysql.connection.cursor()
     return render_template('index.html')
 
 # Hours Sumbission route
