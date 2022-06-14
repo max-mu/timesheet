@@ -118,7 +118,7 @@ def hrresults():
     results = ()
     if not end_first:
         query = 'SELECT name, hours, date, approval FROM timesheet \
-            WHERE name = %s AND date BETWEEN %s AND %s'
+            WHERE name = %s AND date BETWEEN %s AND %s ORDER BY date'
         cur.execute(query, [name, begin, end])
         results = cur.fetchall()
     cur.close()
@@ -140,7 +140,6 @@ def supvresults(supvname):
     name = request.form['name']
     dateBegin = request.form['dateBegin']
     dateEnd = request.form['dateEnd']
-    list = Timesheet.query.filter_by(name=name).order_by(Timesheet.date).all()
     begin = datetime.strptime(dateBegin, '%Y-%m-%d').date()
     end = datetime.strptime(dateEnd, '%Y-%m-%d').date()
     not_assigned = None
@@ -152,8 +151,8 @@ def supvresults(supvname):
         supv = cur.fetchall()
         not_assigned = supv[0][0] != supvname
         if not not_assigned:
-            query = 'SELECT name, hours, date, approval FROM timesheet \
-                WHERE name = %s AND date BETWEEN %s AND %s'
+            query = 'SELECT id, name, hours, date, approval FROM timesheet \
+                WHERE name = %s AND date BETWEEN %s AND %s ORDER BY date'
             cur.execute(query, [name, begin, end])
             results = cur.fetchall()
     cur.close()
@@ -165,19 +164,26 @@ def supvresults(supvname):
 @app.route('/supvedits/<supvname>', methods=['POST'])
 @login_required
 def supvedits(supvname):
-    date = request.form['date']
+    cur = mysql.connection.cursor()
+    id = request.form['id']
     choice = request.form['choice']
-    entry = Timesheet.query.filter_by(date=date).filter(Timesheet.date == date).first()
+    query = 'SELECT approval FROM timesheet WHERE id = %s'
+    result = cur.execute(query, [id])
+    print(result)
     # If the state of the record is what the user selected, redun is True
-    redun = ((entry.approval == 'Yes' and choice == 'approve')
-        or (entry.approval == 'No' and choice == 'unapprove'))
+    redun = ((result == 'Yes' and choice == 'approve')
+        or (result == 'No' and choice == 'unapprove'))
     # Changes the state of the record
     if not redun:
         if choice == 'approve':
-            entry.approval = 'Yes'
+            query = 'UPDATE timesheet SET approval = "Yes" \
+                WHERE id = %s'
         else:
-            entry.approval = 'No'
-        db.session.commit()
+            query = 'UPDATE timesheet SET approval = "No" \
+                WHERE id = %s'
+        cur.execute(query, [id])
+        mysql.connection.commit()
+    cur.close()
     return render_template('supvedits.html', supvname=supvname, 
         choice=choice, redun=redun)
     

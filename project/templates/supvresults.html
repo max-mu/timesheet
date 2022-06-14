@@ -26,11 +26,11 @@
     </tr>
     {% for data in results %}
       <tr>
-        <td class="center-align"><input type="radio" name="date" value="{{ data.date }}" required></td>
-        <td>{{ data[0] }}</td>
+        <td class="center-align"><input type="radio" name="id" value="{{ data[0] }}" required></td>
         <td>{{ data[1] }}</td>
         <td>{{ data[2] }}</td>
         <td>{{ data[3] }}</td>
+        <td>{{ data[4] }}</td>
       </tr>
     {% endfor %}
   </table>
