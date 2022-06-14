@@ -53,4 +53,5 @@ class OnboardingForm(FlaskForm):
     is_hr = IntegerField(label='Is HR', validators=[InputRequired()])
     supv = StringField(label='Supervisor Name')
     is_supv = IntegerField(label='Is Supervisor', validators=[InputRequired()])
+    is_active = HiddenField()
     submit = SubmitField(label='Submit')

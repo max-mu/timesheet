@@ -2,7 +2,7 @@ from __init__  import db
 from flask_login import UserMixin
 
 # Employee Model
-class Employees(UserMixin, db.Model):
+class Employees(db.Model, UserMixin):
     __tablename__ = 'employees'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
@@ -14,7 +14,8 @@ class Employees(UserMixin, db.Model):
     supv = db.Column(db.String)
     is_supv = db.Column(db.Integer) # 0 for not a supervisor, 1 for supervisor
 
-    def __init__(self, name, email, password, address, phone, is_hr, supv, is_supv):
+    def __init__(self, name, email, password, 
+        address, phone, is_hr, supv, is_supv, is_active):
         self.name = name
         self.email = email
         self.password = password
@@ -23,7 +24,7 @@ class Employees(UserMixin, db.Model):
         self.is_hr = is_hr
         self.supv = supv
         self.is_supv = is_supv
-
+    
     def get_id(self):
         return self.id
 

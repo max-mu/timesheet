@@ -8,6 +8,8 @@ app = Flask(__name__)
 # TODO: Change this key in the end
 app.config['SECRET_KEY'] = 'not a secure key'    
 Bootstrap(app)
+
+# SQLAlchemy is used only for login authorization
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:Test1234!@127.0.0.1/ksldata'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 db = SQLAlchemy(app)

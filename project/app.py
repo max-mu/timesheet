@@ -13,26 +13,6 @@ class Login(enum.Enum):
     UNAUTH = 3
     LOGINFAIL = 4
 
-# Used in submitting hours, checks to see if the email and password are a valid login
-def valid_login(e, password):
-    data = Employees.query.filter_by(email=e).first() # Should only return one result
-    if(data != None and data.password == password):
-        return True, data.name
-    return False, ''
-
-# Used in HR/Supervisor login, checks to see if the email and password are a valid login
-# If login is valid, checks to see if the person logging in is a supervisor/HR
-def restrict_login(e, password, type):
-    data = Employees.query.filter_by(email=e).first() # Should only return one result
-    if data != None and data.password == password:
-        if data.is_hr and type == 'hr':
-            return Login.HR, None
-        elif data.is_supv and type == 'supv':
-            return Login.SUPV, data
-        else:
-            return Login.UNAUTH, None
-    return Login.LOGINFAIL, None
-
 # Default route
 @app.route('/')
 def index():
@@ -51,8 +31,6 @@ def hours():
             email = %s'
         cur.execute(query, [email])
         results = cur.fetchall()
-        # result is a (bool, string) tuple
-        # result = valid_login(email, password)
         if check_password_hash(results[0][1], password):
             name = results[0][0]
             hours = request.form['hours']
@@ -90,35 +68,34 @@ def login(error):
         click on the correct link.'
     elif error == 'fail':
         message = 'Invalid email/password.'
-    elif error == 'url':
-        message = 'You must enter your login credentials in order to log in.'
     return render_template('login.html', form=form, message=message)
 
 @app.route('/logincheck', methods=['POST'])
 def logincheck():
+    cur = mysql.connection.cursor()
     email = request.form['email']
     password = request.form['password']
     choice = request.form['choice']
-    # result is a (Login, SQ query) tuple
-    result = restrict_login(email, password, choice)
-    user = Employees.query.filter_by(email=email).first() # Should be only one result
-    # Valid login, in HR
-    if result[0] == Login.HR: 
-        login_user(user)
-        return redirect( url_for('hr'))
-    # Valid login, supervisor
-    elif result[0] == Login.SUPV: 
-        login_user(user)
-        return redirect( url_for('supv', supvname=result[1].name))
-    # Valid login, unauthorized
-    elif result[0] == Login.UNAUTH: 
-        return redirect( url_for('login', error='unauth'))
+    query = 'SELECT * FROM employees WHERE email = %s'
+    cur.execute(query, [email])
+    results = cur.fetchall()
+    cur.close()
+    user = Employees.query.filter_by(email=email).first()
+    # Valid login
+    if check_password_hash(results[0][3], password):
+        # In HR
+        if results[0][6] == 1 and choice == 'hr':
+            login_user(user)
+            return redirect( url_for('hr'))
+        # Is a supervisor
+        elif results[0][8] == 1 and choice == 'supv':
+            login_user(user)
+            return redirect( url_for('supv', supvname=results[0][1]))
+        # Unauthorized
+        else: 
+            return redirect( url_for('login', error='unauth'))
     # Invalid login
-    elif result[0] == Login.LOGINFAIL: 
-        return redirect( url_for('login', error='fail')) 
-    # If the user puts in the url and doesn't put in login credentials
-    else:
-        return redirect( url_for('login', error='url'))
+    return redirect( url_for('login', error='fail')) 
 
 # HR Hub route
 @app.route('/hr', methods=['GET', 'POST'])
