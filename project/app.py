@@ -4,7 +4,7 @@ from flask_login import login_user, login_required, logout_user
 from datetime import datetime
 from __init__ import app, db, mysql
 from models import Employees, Timesheet
-from forms import HoursForm, LoginForm, SearchForm
+from forms import HoursForm, LoginForm, SearchForm, OnboardingForm
 import enum
 
 class Login(enum.Enum):
@@ -27,7 +27,7 @@ def restrict_login(e, password, type):
     if data != None and data.password == password:
         if data.is_hr and type == 'hr':
             return Login.HR, None
-        elif data.is_supervisor and type == 'supv':
+        elif data.is_supv and type == 'supv':
             return Login.SUPV, data
         else:
             return Login.UNAUTH, None
@@ -36,7 +36,6 @@ def restrict_login(e, password, type):
 # Default route
 @app.route('/')
 def index():
-    cur = mysql.connection.cursor()
     return render_template('index.html')
 
 # Hours Sumbission route
@@ -45,21 +44,28 @@ def hours():
     form = HoursForm(request.form)
     message = ''
     if request.method == 'POST' and form.validate_on_submit():
+        cur = mysql.connection.cursor()
         email = form.email.data
         password = form.password.data
+        query = 'SELECT name, password FROM employees WHERE \
+            email = %s'
+        cur.execute(query, [email])
+        results = cur.fetchall()
         # result is a (bool, string) tuple
-        result = valid_login(email, password)
-        if result[0]:
-            name = result[1]
+        # result = valid_login(email, password)
+        if check_password_hash(results[0][1], password):
+            name = results[0][0]
             hours = request.form['hours']
             date = request.form['date']
             approval = 'No'
-            record = Timesheet(name, hours, date, approval)
-            db.session.add(record)
-            db.session.commit()
-            return render_template('confirm.html')
+            query = 'INSERT INTO timesheet (name, hours, date, approval) \
+                VALUES (%s, %s, %s, %s)'
+            cur.execute(query, (name, hours, date, approval))
+            mysql.connection.commit()
+            return redirect(url_for('confirm'))
         else:
             message = 'Invalid email/password.'
+        cur.close()
     # If the user input something incorrectly, one of these errors will be printed
     elif request.method == 'POST' and (not form.validate_on_submit()):
         if not isinstance(form.hours.data, (int, float)):
@@ -80,7 +86,8 @@ def login(error):
     form = LoginForm()
     if error == 'unauth':
         message = 'You are not authorized to login in as your selection. \
-        If you meant to submit your hours, go back to the main hub and click on the correct link.'
+        If you meant to submit your hours, go back to the main hub and \
+        click on the correct link.'
     elif error == 'fail':
         message = 'Invalid email/password.'
     elif error == 'url':
@@ -159,9 +166,9 @@ def supvresults(supvname):
     begin = datetime.strptime(dateBegin, '%Y-%m-%d').date()
     end = datetime.strptime(dateEnd, '%Y-%m-%d').date()
     end_first = (end < begin)
-    employ = Employees.query.filter_by(name=name).first() # Should only return one result
+    employee = Employees.query.filter_by(name=name).first() # Should only return one result
     # This will needed to be changed if there can be more than one supervisor
-    not_assigned = (employ.supervisor != supvname)
+    not_assigned = (employee.supv != supvname)
     if not not_assigned and not end_first:
         for data in list:
             date = datetime.strptime(data.date, '%Y-%m-%d').date()
@@ -188,7 +195,8 @@ def supvedits(supvname):
         else:
             entry.approval = 'No'
         db.session.commit()
-    return render_template('supvedits.html', supvname=supvname, choice=choice, redun=redun)
+    return render_template('supvedits.html', supvname=supvname, 
+        choice=choice, redun=redun)
     
 # Logout route
 @app.route('/logout')
@@ -196,6 +204,33 @@ def supvedits(supvname):
 def logout():
     logout_user()
     return render_template('logout.html')
+
+@app.route('/onboarding', methods=['GET', 'POST'])
+def onboarding():
+    form = OnboardingForm(request.form)
+    message = ''
+    if request.method == 'POST' and form.validate_on_submit():
+        cur = mysql.connection.cursor()
+        name = request.form['name']
+        email = request.form['email']
+        password = generate_password_hash(request.form['password'])
+        address = request.form['address']
+        phone = request.form['phone']
+        is_hr = request.form['is_hr']
+        supv = request.form['supv']
+        is_supv = request.form['is_supv']
+        query = 'INSERT INTO employees (name, email, password, \
+            address, phone, is_hr, supv, is_supv) VALUES \
+            (%s, %s, %s, %s, %s, %s, %s, %s)'
+        cur.execute(query, (name, email, password, 
+            address, phone, is_hr, supv, is_supv))
+        mysql.connection.commit()
+        cur.close()
+        return redirect(url_for('confirm'))
+    # The password fields are the only things that can invalidate the form
+    elif request.method == 'POST' and (not form.validate_on_submit()):
+        message = 'Your passwords did not match.'
+    return render_template('onboarding.html', form=form, message=message)
 
 if __name__ == '__main__':
     app.run()
