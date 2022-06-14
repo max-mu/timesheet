@@ -5,13 +5,6 @@ from datetime import datetime
 from __init__ import app, db, mysql
 from models import Employees, Timesheet
 from forms import HoursForm, LoginForm, SearchForm, OnboardingForm
-import enum
-
-class Login(enum.Enum):
-    HR = 1
-    SUPV = 2
-    UNAUTH = 3
-    LOGINFAIL = 4
 
 # Default route
 @app.route('/')
