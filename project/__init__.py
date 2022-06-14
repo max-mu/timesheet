@@ -11,7 +11,7 @@ Bootstrap(app)
 # SQLite
 # app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///timesheet.db'
 # MySQL
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:Test1234!@127.0.0.1/mysql'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:Test1234!@127.0.0.1/ksldata'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 db = SQLAlchemy(app)
 
@@ -24,7 +24,7 @@ def load_user(user_id):
 
 app.config['MYSQL_USER'] = 'root'
 app.config['MYSQL_PASSWORD'] = 'Test1234!'
-app.config['MYSQL_DB'] = 'mysql'
+app.config['MYSQL_DB'] = 'ksldata'
 app.config['MYSQL_HOST'] = '127.0.0.1'
 mysql = MySQL(app)
 

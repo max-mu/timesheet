@@ -7,8 +7,6 @@ from models import Employees, Timesheet
 from forms import HoursForm, LoginForm, SearchForm
 import enum
 
-cur = mysql.connection.cursor()
-
 class Login(enum.Enum):
     HR = 1
     SUPV = 2
@@ -27,9 +25,9 @@ def valid_login(e, password):
 def restrict_login(e, password, type):
     data = Employees.query.filter_by(email=e).first() # Should only return one result
     if data != None and data.password == password:
-        if data.ishr and type == 'hr':
+        if data.is_hr and type == 'hr':
             return Login.HR, None
-        elif data.issupervisor and type == 'supv':
+        elif data.is_supervisor and type == 'supv':
             return Login.SUPV, data
         else:
             return Login.UNAUTH, None
