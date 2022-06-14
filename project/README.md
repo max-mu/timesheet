@@ -9,9 +9,10 @@ pip install flask_bootstrap4
 pip install flask_wtf
 pip install flask_sqlalchemy
 pip install flask_login
-
-MySQL Installations
 pip install pymysql
 sudo apt-get install mysql-server
 sudo apt-get install libmysqlclient-dev
 pip install flask_mysqldb
+
+CSV
+pip install pandas

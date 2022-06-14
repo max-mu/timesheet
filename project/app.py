@@ -1,10 +1,11 @@
-from flask import request, render_template, redirect, url_for
+from flask import request, render_template, redirect, url_for, Response
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import login_user, login_required, logout_user
 from datetime import datetime
 from __init__ import app, mysql
 from models import Employees
-from forms import HoursForm, LoginForm, SearchForm, OnboardingForm
+from forms import HoursForm, LoginForm, HRSearchForm, SupvSearchForm, OnboardingForm
+import io, csv
 
 # Default route
 @app.route('/')
@@ -94,7 +95,7 @@ def logincheck():
 @app.route('/hr', methods=['GET', 'POST'])
 @login_required
 def hr():
-    form = SearchForm(request.form)
+    form = HRSearchForm(request.form)
     return render_template('hr.html', form=form)
 
 # HR Results route
@@ -105,6 +106,7 @@ def hrresults():
     name = request.form['name']
     dateBegin = request.form['dateBegin']
     dateEnd = request.form['dateEnd']
+    choice = request.form['choice']
     begin = datetime.strptime(dateBegin, '%Y-%m-%d').date()
     end = datetime.strptime(dateEnd, '%Y-%m-%d').date()
     end_first = (end < begin)
@@ -115,14 +117,27 @@ def hrresults():
         cur.execute(query, [name, begin, end])
         results = cur.fetchall()
     cur.close()
-    return render_template('hrresults.html', end_first=end_first, results=results, 
-        name=name, dateBegin=dateBegin, dateEnd=dateEnd, empty=(len(results) == 0))
+    if choice == 'browser' or len(results) == 0:
+        return render_template('hrresults.html', end_first=end_first, 
+        results=results,  name=name, dateBegin=dateBegin, 
+        dateEnd=dateEnd, empty=(len(results) == 0))
+    else:
+        output = io.StringIO()
+        writer = csv.writer(output)
+        line = ['Name  Hours  Date  Approval']
+        writer.writerow(line)
+        for row in results:
+            line = [row[0] + ' ' + str(row[1]) + ' ' + str(row[2]) + ' ' + row[3]]
+            writer.writerow(line)
+        output.seek(0)
+        return Response(output, mimetype='text/csv', 
+            headers={'Content-Dispostion':'attachment;filename=results.csv'})
 
 # Supervisor Hub route
 @app.route('/supv/<supvname>', methods=['GET', 'POST'])
 @login_required
 def supv(supvname):
-    form = SearchForm(request.form)
+    form = SupvSearchForm(request.form)
     return render_template('supv.html', form=form, supvname=supvname)
 
 # Supervisor Results route

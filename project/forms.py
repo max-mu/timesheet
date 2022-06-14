@@ -30,8 +30,20 @@ def get_name_choices():
         choices.append((data.name, data.name))
     return choices
 
-# Fetch Form
-class SearchForm(FlaskForm):
+# HR Search Form
+class HRSearchForm(FlaskForm):
+    name = SelectField(label='Name of the employee', 
+        validators=[InputRequired()], choices=get_name_choices())
+    dateBegin = DateField(label='First date you want your search to contain', 
+        validators=[InputRequired()], format='%Y-%m-%d')
+    dateEnd = DateField(label='Last date you want your search to contain', 
+        validators=[InputRequired()], format='%Y-%m-%d')
+    choice = RadioField(validators=[InputRequired()], 
+        choices=[('csv', 'CSV'), ('browser', 'Browser')], default='csv')
+    submit = SubmitField(label='Submit')
+
+# Supervisor Fetch Form
+class SupvSearchForm(FlaskForm):
     name = SelectField(label='Name of the employee', 
         validators=[InputRequired()], choices=get_name_choices())
     dateBegin = DateField(label='First date you want your search to contain', 
