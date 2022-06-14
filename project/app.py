@@ -82,7 +82,7 @@ def logincheck():
     cur.close()
     user = Employees.query.filter_by(email=email).first()
     # Valid login
-    if check_password_hash(results[0][3], password):
+    if len(results) != 0 and check_password_hash(results[0][3], password):
         # In HR
         if results[0][6] == 1 and choice == 'hr':
             login_user(user)
@@ -108,21 +108,22 @@ def hr():
 @app.route('/hrresults', methods=['POST'])
 @login_required
 def hrresults():
+    cur = mysql.connection.cursor()
     name = request.form['name']
     dateBegin = request.form['dateBegin']
     dateEnd = request.form['dateEnd']
-    list = Timesheet.query.filter_by(name=name).order_by(Timesheet.date).all()
-    filtered = []
     begin = datetime.strptime(dateBegin, '%Y-%m-%d').date()
     end = datetime.strptime(dateEnd, '%Y-%m-%d').date()
     end_first = (end < begin)
+    results = ()
     if not end_first:
-        for data in list:
-            date = datetime.strptime(data.date, '%Y-%m-%d').date()
-            if begin <= date and date <= end:
-                filtered.append(data)
-    return render_template('hrresults.html', end_first=end_first, filtered=filtered, 
-        name=name, dateBegin=dateBegin, dateEnd=dateEnd, empty=(len(filtered) == 0))
+        query = 'SELECT name, hours, date, approval FROM timesheet \
+            WHERE name = %s AND date BETWEEN %s AND %s'
+        cur.execute(query, [name, begin, end])
+        results = cur.fetchall()
+    cur.close()
+    return render_template('hrresults.html', end_first=end_first, results=results, 
+        name=name, dateBegin=dateBegin, dateEnd=dateEnd, empty=(len(results) == 0))
 
 # Supervisor Hub route
 @app.route('/supv/<supvname>', methods=['GET', 'POST'])
@@ -135,25 +136,30 @@ def supv(supvname):
 @app.route('/supvresults/<supvname>', methods=['POST'])
 @login_required
 def supvresults(supvname):
+    cur = mysql.connection.cursor()
     name = request.form['name']
     dateBegin = request.form['dateBegin']
     dateEnd = request.form['dateEnd']
     list = Timesheet.query.filter_by(name=name).order_by(Timesheet.date).all()
-    filtered = []
     begin = datetime.strptime(dateBegin, '%Y-%m-%d').date()
     end = datetime.strptime(dateEnd, '%Y-%m-%d').date()
+    not_assigned = None
+    results = ()
     end_first = (end < begin)
-    employee = Employees.query.filter_by(name=name).first() # Should only return one result
-    # This will needed to be changed if there can be more than one supervisor
-    not_assigned = (employee.supv != supvname)
-    if not not_assigned and not end_first:
-        for data in list:
-            date = datetime.strptime(data.date, '%Y-%m-%d').date()
-            if begin <= date and date <= end:
-                filtered.append(data)
+    if not end_first:
+        query = 'SELECT supv FROM employees WHERE name = %s'
+        cur.execute(query, [name])
+        supv = cur.fetchall()
+        not_assigned = supv[0][0] != supvname
+        if not not_assigned:
+            query = 'SELECT name, hours, date, approval FROM timesheet \
+                WHERE name = %s AND date BETWEEN %s AND %s'
+            cur.execute(query, [name, begin, end])
+            results = cur.fetchall()
+    cur.close()
     return render_template('supvresults.html', end_first=end_first, 
-        not_assigned=not_assigned, filtered=filtered, supvname=supvname, name=name, 
-        dateBegin=dateBegin, dateEnd=dateEnd, empty=(len(filtered) == 0))
+        not_assigned=not_assigned, results=results, supvname=supvname, name=name, 
+        dateBegin=dateBegin, dateEnd=dateEnd, empty=(len(results) == 0))
 
 # Supervisor Approval/Unapproval route
 @app.route('/supvedits/<supvname>', methods=['POST'])

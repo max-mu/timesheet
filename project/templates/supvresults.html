@@ -3,13 +3,13 @@
 {% block content %}
 <div class="container">
   <h3 class="pt-3">Supervisor Results</h3>
-  {% if not_assigned == True %}
+  {% if end_first == True %}
+    <hr>
+    <p><strong>The end date was before the begin date.</strong></p>
+    <p><strong>Please double check your dates.</strong></p>
+  {% elif not_assigned == True %}
     <hr>
     <p><strong>You are not assigned as a supervisor for {{ name }}.</strong></p>
-  {% elif format_issue == True %}
-    <hr>
-    <p class="pt-1"><strong>One or both of your dates were formatted incorrectly.</strong></p>
-    <p><strong>Please format your dates as mm/dd/yyyy.</strong></p>
   {% elif empty == True %}
     <hr>
     <p><strong>There were no results for {{ name }} from {{ dateBegin }} to {{ dateEnd }}.</strong></p>
@@ -24,13 +24,13 @@
       <th>Date</th>
       <th>Approval Status</th>
     </tr>
-    {% for data in filtered %}
+    {% for data in results %}
       <tr>
         <td class="center-align"><input type="radio" name="date" value="{{ data.date }}" required></td>
-        <td>{{ data.name }}</td>
-        <td>{{ data.hours }}</td>
-        <td>{{ data.date }}</td>
-        <td>{{ data.approval }}</td>
+        <td>{{ data[0] }}</td>
+        <td>{{ data[1] }}</td>
+        <td>{{ data[2] }}</td>
+        <td>{{ data[3] }}</td>
       </tr>
     {% endfor %}
   </table>
