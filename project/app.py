@@ -2,8 +2,8 @@ from flask import request, render_template, redirect, url_for
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import login_user, login_required, logout_user
 from datetime import datetime
-from __init__ import app, db, mysql
-from models import Employees, Timesheet
+from __init__ import app, mysql
+from models import Employees
 from forms import HoursForm, LoginForm, SearchForm, OnboardingForm
 
 # Default route
@@ -28,7 +28,7 @@ def hours():
             name = results[0][0]
             hours = request.form['hours']
             date = request.form['date']
-            approval = 'No'
+            approval = 'Not Approved'
             query = 'INSERT INTO timesheet (name, hours, date, approval) \
                 VALUES (%s, %s, %s, %s)'
             cur.execute(query, (name, hours, date, approval))
@@ -161,18 +161,18 @@ def supvedits(supvname):
     id = request.form['id']
     choice = request.form['choice']
     query = 'SELECT approval FROM timesheet WHERE id = %s'
-    result = cur.execute(query, [id])
-    print(result)
+    cur.execute(query, [id])
+    result = cur.fetchall()
     # If the state of the record is what the user selected, redun is True
-    redun = ((result == 'Yes' and choice == 'approve')
-        or (result == 'No' and choice == 'unapprove'))
+    redun = ((result[0][0] == 'Approved' and choice == 'approve')
+        or (result[0][0] == 'Not Approved' and choice == 'unapprove'))
     # Changes the state of the record
     if not redun:
         if choice == 'approve':
-            query = 'UPDATE timesheet SET approval = "Yes" \
+            query = 'UPDATE timesheet SET approval = "Approved" \
                 WHERE id = %s'
         else:
-            query = 'UPDATE timesheet SET approval = "No" \
+            query = 'UPDATE timesheet SET approval = "Not Approved" \
                 WHERE id = %s'
         cur.execute(query, [id])
         mysql.connection.commit()
