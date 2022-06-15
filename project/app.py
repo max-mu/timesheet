@@ -47,7 +47,7 @@ def hours():
             conn.commit()
             cur.close()
             conn.close()
-            return redirect(url_for('confirm'))
+            return render_template('confirm.html')
         else:
             cur.close()
             conn.close()
@@ -61,10 +61,6 @@ def hours():
                 ), 'error')
     return render_template('hours.html', form=form, message=message)
 
-# Hours Confirmation route
-@app.route('/confirm')
-def confirm():
-    return render_template('confirm.html')
 
 # Login route
 @app.route('/login', methods=['GET', 'POST'])
@@ -108,40 +104,43 @@ def login():
 @app.route('/hr', methods=['GET', 'POST'])
 @login_required
 def hr():
+    message = ''
     form = HRSearchForm(request.form)
-    return render_template('hr.html', form=form)
-
-# HR Results route
-@app.route('/hrresults', methods=['POST'])
-@login_required
-def hrresults():
-    conn = mysql.connect()
-    cur = conn.cursor(pymysql.cursors.DictCursor)
-    name = request.form['name']
-    dateBegin = request.form['dateBegin']
-    dateEnd = request.form['dateEnd']
-    choice = request.form['choice']
-    begin = datetime.strptime(dateBegin, '%Y-%m-%d').date()
-    end = datetime.strptime(dateEnd, '%Y-%m-%d').date()
-    end_first = (end < begin)
-    results = ()
-    if not end_first:
-        query = 'SELECT id, name, date, clock_in, clock_out, pto, \
-            hours, approval FROM timesheet WHERE name = "%s" \
-            AND date BETWEEN "%s" AND "%s" ORDER BY date'%(name, begin, end)
-        cur.execute(query)
-        results = cur.fetchall()
-    if choice == 'browser' or len(results) == 0 or end_first:
-        return render_template('hrresults.html', end_first=end_first, 
-        results=results,  name=name, dateBegin=dateBegin, 
-        dateEnd=dateEnd, empty=(len(results) == 0))
-    else:
-        csv_results = pd.read_sql_query(query, conn)
-        df = pd.DataFrame(csv_results)
-        df.to_csv(r'results.csv', index=False)
-        cur.close()
-        conn.close()
-        return send_file('results.csv', as_attachment=True)
+    if request.method == 'POST' and form.validate_on_submit():
+        name = request.form['name']
+        dateBegin = request.form['dateBegin']
+        dateEnd = request.form['dateEnd']
+        choice = request.form['choice']
+        begin = datetime.strptime(dateBegin, '%Y-%m-%d').date()
+        end = datetime.strptime(dateEnd, '%Y-%m-%d').date()
+        end_first = (end < begin)
+        if end_first:
+            message = 'The end date was before the begin date. \
+                Please double check your dates.'
+        else:
+            conn = mysql.connect()
+            cur = conn.cursor(pymysql.cursors.DictCursor)
+            query = 'SELECT id, name, date, clock_in, clock_out, pto, \
+                hours, approval FROM timesheet WHERE name = "%s" \
+                AND date BETWEEN "%s" AND "%s" ORDER BY date'%(name, begin, end)
+            cur.execute(query)
+            results = cur.fetchall()
+            cur.close()
+            conn.close()
+            if len(results) == 0:
+                message = 'There were no results for %s from %s \
+                    to %s. If you were expecting results, please \
+                    double check all fields.'%(name, dateBegin, dateEnd)
+            elif choice == 'browser':
+                return render_template('hrresults.html', results=results)
+            else:
+                conn = mysql.connect()
+                csv_results = pd.read_sql_query(query, conn)
+                df = pd.DataFrame(csv_results)
+                df.to_csv(r'results.csv', index=False)
+                conn.close()
+                return send_file('results.csv', as_attachment=True)
+    return render_template('hr.html', form=form, message=message)
 
 # Supervisor Hub route
 @app.route('/supv', methods=['GET', 'POST'])
@@ -238,7 +237,7 @@ def onboarding():
         conn.commit()
         cur.close()
         conn.close()
-        return redirect(url_for('confirm'))
+        return render_template('confirm.html')
     # The password fields are the only things that can invalidate the form
     elif request.method == 'POST' and (not form.validate_on_submit()):
         for field, errors in form.errors.items():
