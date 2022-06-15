@@ -1,7 +1,6 @@
 Python 3
 
 Run:
-sudo apt install python3-pip [if you don't have pip installed]
 pip install flask
 pip install wheel
 pip install flask_bootstrap4
