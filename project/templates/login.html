@@ -2,19 +2,19 @@
 {% import "bootstrap/wtf.html" as wtf %}
 {% block content %}
 <div class="container">
-  <h3 class="pt-3">Login</h3>
-  <hr>
-    <p><strong>{{ message }}</strong></p>
-    <form method="POST" id="LoginForm" action="{{ url_for('logincheck') }}">
-      {{ form.csrf_token }}
-			{{ wtf.form_field(form.email) }}
-			{{ wtf.form_field(form.password) }}
-			{{ wtf.form_field(form.choice) }}
-      <p class="pt-1"></p>
-			{{ wtf.form_field(form.login) }}
-    </form>
-  <hr>
-  <p><a href="{{ url_for('index') }}">Go back to the Main Hub</a></p>
-  <hr>
+<h3 class="pt-3">Login</h3>
+<hr>
+  <p><strong>{{ message }}</strong></p>
+  <form method="POST" id="LoginForm" action="{{ url_for('logincheck') }}">
+    {{ form.csrf_token }}
+    {{ wtf.form_field(form.email) }}
+    {{ wtf.form_field(form.password) }}
+    {{ wtf.form_field(form.choice) }}
+    <p class="pt-1"></p>
+    {{ wtf.form_field(form.login) }}
+  </form>
+<hr>
+<p><a href="{{ url_for('index') }}">Go back to the Main Hub</a></p>
+<hr>
 </div>
 {% endblock %}

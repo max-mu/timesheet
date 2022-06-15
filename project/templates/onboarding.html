@@ -2,12 +2,12 @@
 {% import "bootstrap/wtf.html" as wtf %}
 {% block content %}
 <div class="container">
-  <h3 class="pt-3">Onboarding/Registration</h3>
-  <hr>
-  <p><strong>{{ message }}</strong></p>
-  {{ wtf.quick_form(form) }}
-  <hr>
-  <p><a href="{{ url_for('index') }}">Go back to the Main Hub</a></p>
-  <hr>
+<h3 class="pt-3">Onboarding/Registration</h3>
+<hr>
+<p><strong>{{ message }}</strong></p>
+{{ wtf.quick_form(form) }}
+<hr>
+<p><a href="{{ url_for('index') }}">Go back to the Main Hub</a></p>
+<hr>
 </div>
 {% endblock %}

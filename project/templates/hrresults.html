@@ -2,36 +2,36 @@
 {% import "bootstrap/wtf.html" as wtf %}
 {% block content %}
 <div class="container">
-  <h3 class="pt-3">HR Results</h3>
-  {% if end_first == True %}
-    <hr>
-    <p><strong>The end date was before the begin date.</strong></p>
-    <p><strong>Please double check your dates.</strong></p>
-  {% elif empty == True %}
-    <hr>
-    <p class="pt-1"><strong>There were no results for {{ name }} from {{ dateBegin }} to {{ dateEnd }}.</strong></p>
-    <p><strong>If you were expecting results, please double check all fields.</strong></p>
-  {% else %}
-    <table class="table">
-      <tr>
-        <th>Name</th>
-        <th>Hours</th>
-        <th>Date</th>
-        <th>Approval Status</th>
-      </tr>
-      {% for data in results %}
-      <tr>
-        <td>{{ data[0] }}</td>
-        <td>{{ data[1] }}</td>
-        <td>{{ data[2] }}</td>
-        <td>{{ data[3] }}</td>
-      </tr>
-      {% endfor %}
-    </table>
-  {% endif %}
+<h3 class="pt-3">HR Results</h3>
+{% if end_first == True %}
   <hr>
-  <p><a href="{{ url_for('hr') }}">Go back to the HR Hub</a></p>
-	<p><a href="{{ url_for('logout') }}">Logout</a></p>
+  <p><strong>The end date was before the begin date.</strong></p>
+  <p><strong>Please double check your dates.</strong></p>
+{% elif empty == True %}
   <hr>
+  <p class="pt-1"><strong>There were no results for {{ name }} from {{ dateBegin }} to {{ dateEnd }}.</strong></p>
+  <p><strong>If you were expecting results, please double check all fields.</strong></p>
+{% else %}
+  <table class="table">
+    <tr>
+      <th>Name</th>
+      <th>Hours</th>
+      <th>Date</th>
+      <th>Approval Status</th>
+    </tr>
+    {% for data in results %}
+      <tr>
+        <td>{{ data['name'] }}</td>
+        <td>{{ data['hours'] }}</td>
+        <td>{{ data['date'] }}</td>
+        <td>{{ data['approval'] }}</td>
+      </tr>
+    {% endfor %}
+  </table>
+{% endif %}
+<hr>
+<p><a href="{{ url_for('hr') }}">Go back to the HR Hub</a></p>
+<p><a href="{{ url_for('logout') }}">Logout</a></p>
+<hr>
 </div>
 {% endblock %}

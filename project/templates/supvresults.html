@@ -2,19 +2,19 @@
 {% import "bootstrap/wtf.html" as wtf %}
 {% block content %}
 <div class="container">
-  <h3 class="pt-3">Supervisor Results</h3>
-  {% if end_first == True %}
-    <hr>
-    <p><strong>The end date was before the begin date.</strong></p>
-    <p><strong>Please double check your dates.</strong></p>
-  {% elif not_assigned == True %}
-    <hr>
-    <p><strong>You are not assigned as a supervisor for {{ name }}.</strong></p>
-  {% elif empty == True %}
-    <hr>
-    <p><strong>There were no results for {{ name }} from {{ dateBegin }} to {{ dateEnd }}.</strong></p>
-    <p><strong>If you were expecting results, please double check all fields.</strong></p>
-  {% else %}
+<h3 class="pt-3">Supervisor Results</h3>
+{% if end_first == True %}
+  <hr>
+  <p><strong>The end date was before the begin date.</strong></p>
+  <p><strong>Please double check your dates.</strong></p>
+{% elif not_assigned == True %}
+  <hr>
+  <p><strong>You are not assigned as a supervisor for {{ name }}.</strong></p>
+{% elif empty == True %}
+  <hr>
+  <p><strong>There were no results for {{ name }} from {{ dateBegin }} to {{ dateEnd }}.</strong></p>
+  <p><strong>If you were expecting results, please double check all fields.</strong></p>
+{% else %}
   <form method="POST" id="EditForm" action="{{ url_for('supvedits', supvname=supvname) }}">
   <table class="table">
     <tr>
@@ -26,13 +26,13 @@
     </tr>
     {% for data in results %}
       <tr>
-        <td class="center-align"><input type="radio" name="id" value="{{ data[0] }}" required></td>
-        <td>{{ data[1] }}</td>
-        <td>{{ data[2] }}</td>
-        <td>{{ data[3] }}</td>
-        <td>{{ data[4] }}</td>
+        <td class="center-align"><input type="radio" name="id" value="{{ data['id'] }}" required></td>
+        <td>{{ data['name'] }}</td>
+        <td>{{ data['hours'] }}</td>
+        <td>{{ data['date'] }}</td>
+        <td>{{ data['approval'] }}</td>
       </tr>
-    {% endfor %}
+  {% endfor %}
   </table>
 
   <p>If you would like to change the approval status of one of the entries above, select it.</p>
@@ -47,10 +47,10 @@
     <p class="pt-3"><input class="btn btn-primary" type="submit" value="Submit Choice"></p>
   </div>
   </form>
-  {% endif %}
-  <hr>
-  <p><a href="{{ url_for('supv', supvname=supvname) }}">Go back to the Supvervisor Hub</a></p>
-	<p><a href="{{ url_for('logout') }}">Logout</a></p>
-  <hr>
+{% endif %}
+<hr>
+<p><a href="{{ url_for('supv', supvname=supvname) }}">Go back to the Supvervisor Hub</a></p>
+<p><a href="{{ url_for('logout') }}">Logout</a></p>
+<hr>
 </div>
 {% endblock %}
