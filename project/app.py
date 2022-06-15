@@ -249,6 +249,7 @@ def logout():
     logout_user()
     return render_template('logout.html')
 
+# Onboarding route
 @app.route('/onboarding', methods=['GET', 'POST'])
 def onboarding():
     form = OnboardingForm(request.form)
