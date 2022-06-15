@@ -1,6 +1,6 @@
 from flask import request, render_template, redirect, url_for, flash, send_file
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask_login import login_user, login_required, logout_user
+from flask_login import login_user, login_required, logout_user, current_user
 from datetime import datetime
 from __init__ import app, mysql
 from models import Employees
@@ -101,7 +101,7 @@ def logincheck():
         # Is a supervisor
         elif results['is_supv'] == 1 and choice == 'supv':
             login_user(user)
-            return redirect( url_for('supv', supvname=results['name']))
+            return redirect( url_for('supv'))
         # Unauthorized
         else: 
             return redirect( url_for('login', error='unauth'))
@@ -148,16 +148,16 @@ def hrresults():
         return send_file('results.csv', as_attachment=True)
 
 # Supervisor Hub route
-@app.route('/supv/<supvname>', methods=['GET', 'POST'])
+@app.route('/supv', methods=['GET', 'POST'])
 @login_required
-def supv(supvname):
+def supv():
     form = SupvSearchForm(request.form)
-    return render_template('supv.html', form=form, supvname=supvname)
+    return render_template('supv.html', form=form)
 
 # Supervisor Results route
-@app.route('/supvresults/<supvname>', methods=['POST'])
+@app.route('/supvresults', methods=['POST'])
 @login_required
-def supvresults(supvname):
+def supvresults():
     conn = mysql.connect()
     cur = conn.cursor(pymysql.cursors.DictCursor)
     name = request.form['name']
@@ -172,7 +172,7 @@ def supvresults(supvname):
         query = 'SELECT supv FROM employees WHERE name = "%s"'%name
         cur.execute(query)
         supv = cur.fetchone()
-        not_assigned = supv['supv'] != supvname
+        not_assigned = supv['supv'] != current_user.name
         if not not_assigned:
             query = 'SELECT id, name, hours, date, approval FROM timesheet \
                 WHERE name = "%s" AND date BETWEEN "%s" AND "%s" \
@@ -182,11 +182,11 @@ def supvresults(supvname):
         cur.close()
         conn.close()
     return render_template('supvresults.html', end_first=end_first, 
-        not_assigned=not_assigned, results=results, supvname=supvname, name=name, 
+        not_assigned=not_assigned, results=results, name=name, 
         dateBegin=dateBegin, dateEnd=dateEnd, empty=(len(results) == 0))
 
 # Supervisor Approval/Unapproval route
-@app.route('/supvedits/<supvname>', methods=['POST'])
+@app.route('/supvedits', methods=['POST'])
 @login_required
 def supvedits(supvname):
     conn = mysql.connect()
@@ -211,8 +211,7 @@ def supvedits(supvname):
         conn.commit()
     cur.close()
     conn.close()
-    return render_template('supvedits.html', supvname=supvname, 
-        choice=choice, redun=redun)
+    return render_template('supvedits.html', choice=choice, redun=redun)
     
 # Logout route
 @app.route('/logout')
