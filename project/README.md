@@ -16,3 +16,4 @@ pip install flask_mysqldb
 
 CSV
 pip install pandas
+sudo apt-get install python3-pymysql

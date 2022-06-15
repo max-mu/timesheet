@@ -5,7 +5,7 @@ from datetime import datetime
 from __init__ import app, mysql
 from models import Employees
 from forms import HoursForm, LoginForm, HRSearchForm, SupvSearchForm, OnboardingForm
-import io, csv
+import io, csv, pymysql
 
 # Default route
 @app.route('/')
@@ -66,7 +66,8 @@ def login(error):
 
 @app.route('/logincheck', methods=['POST'])
 def logincheck():
-    cur = mysql.connection.cursor()
+    conn = mysql.connect()
+    cur = conn.cursor(pymysql.cursors.DictCursor)
     email = request.form['email']
     password = request.form['password']
     choice = request.form['choice']
