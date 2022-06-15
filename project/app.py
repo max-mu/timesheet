@@ -130,9 +130,9 @@ def hrresults():
     end_first = (end < begin)
     results = ()
     if not end_first:
-        query = 'SELECT name, hours, date, approval FROM timesheet \
-            WHERE name = "%s" AND date BETWEEN "%s" AND "%s" \
-            ORDER BY date'%(name, begin, end)
+        query = 'SELECT id, name, date, clock_in, clock_out, pto, \
+            hours, approval FROM timesheet WHERE name = "%s" \
+            AND date BETWEEN "%s" AND "%s" ORDER BY date'%(name, begin, end)
         cur.execute(query)
         results = cur.fetchall()
     if choice == 'browser' or len(results) == 0 or end_first:
@@ -174,9 +174,9 @@ def supvresults():
         supv = cur.fetchone()
         not_assigned = supv['supv'] != current_user.name
         if not not_assigned:
-            query = 'SELECT id, name, hours, date, approval FROM timesheet \
-                WHERE name = "%s" AND date BETWEEN "%s" AND "%s" \
-                ORDER BY date'%(name, begin, end)
+            query = 'SELECT id, name, date, clock_in, clock_out, \
+                pto, hours,approval FROM timesheet WHERE name = "%s" \
+                AND date BETWEEN "%s" AND "%s" ORDER BY date'%(name, begin, end)
             cur.execute(query)
             results = cur.fetchall()
         cur.close()
@@ -188,7 +188,7 @@ def supvresults():
 # Supervisor Approval/Unapproval route
 @app.route('/supvedits', methods=['POST'])
 @login_required
-def supvedits(supvname):
+def supvedits():
     conn = mysql.connect()
     cur = conn.cursor(pymysql.cursors.DictCursor)
     id = request.form['id']
