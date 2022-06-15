@@ -117,21 +117,18 @@ def hrresults():
         cur.execute(query, [name, begin, end])
         results = cur.fetchall()
     cur.close()
-    if choice == 'browser' or len(results) == 0:
+    if choice == 'browser' or len(results) == 0 or end_first:
         return render_template('hrresults.html', end_first=end_first, 
         results=results,  name=name, dateBegin=dateBegin, 
         dateEnd=dateEnd, empty=(len(results) == 0))
     else:
         output = io.StringIO()
         writer = csv.writer(output)
-        line = ['Name  Hours  Date  Approval']
-        writer.writerow(line)
         for row in results:
-            line = [row[0] + ' ' + str(row[1]) + ' ' + str(row[2]) + ' ' + row[3]]
-            writer.writerow(line)
+            writer.writerow(row)
         output.seek(0)
-        return Response(output, mimetype='text/csv', 
-            headers={'Content-Dispostion':'attachment;filename=results.csv'})
+        return Response(output, mimetype="text/csv", 
+            headers={"Content-Dispostion":"attachment;filename=results.csv"})
 
 # Supervisor Hub route
 @app.route('/supv/<supvname>', methods=['GET', 'POST'])
