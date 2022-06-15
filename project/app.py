@@ -1,10 +1,11 @@
-from flask import request, render_template, redirect, url_for, Response
+from flask import request, render_template, redirect, url_for, Response, send_file
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import login_user, login_required, logout_user
 from datetime import datetime
 from __init__ import app, mysql
 from models import Employees
 from forms import HoursForm, LoginForm, HRSearchForm, SupvSearchForm, OnboardingForm
+import pandas as pd
 import io, csv, pymysql
 
 # Default route
@@ -133,19 +134,12 @@ def hrresults():
         results=results,  name=name, dateBegin=dateBegin, 
         dateEnd=dateEnd, empty=(len(results) == 0))
     else:
-        output = io.StringIO()
-        writer = csv.writer(output)
-        line = ['Name, Hours, Date, Approval Status']
-        writer.writerow(line)
-        for row in results:
-            line = [row['name'] + ',' + str(row['hours']) 
-                + ',' + str(row['date']) + ',' + row['approval']]
-            writer.writerow(line)
-        output.seek(0)
+        csv_results = pd.read_sql_query(query, conn)
+        df = pd.DataFrame(csv_results)
+        df.to_csv(r'results.csv', index=False)
         cur.close()
         conn.close()
-        return Response(output, mimetype="text/csv", 
-            headers={"Content-Dispostion":"attachment;filename=results.csv"})
+        return send_file('results.csv', as_attachment=True)
 
 # Supervisor Hub route
 @app.route('/supv/<supvname>', methods=['GET', 'POST'])
