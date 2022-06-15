@@ -146,8 +146,42 @@ def hr():
 @app.route('/supv', methods=['GET', 'POST'])
 @login_required
 def supv():
+    message = ''
     form = SupvSearchForm(request.form)
-    return render_template('supv.html', form=form)
+    if request.method == 'POST' and form.validate_on_submit():
+        name = request.form['name']
+        dateBegin = request.form['dateBegin']
+        dateEnd = request.form['dateEnd']
+        begin = datetime.strptime(dateBegin, '%Y-%m-%d').date()
+        end = datetime.strptime(dateEnd, '%Y-%m-%d').date()
+        end_first = (end < begin)
+        if end_first:
+            message = 'The end date was before the begin date. \
+                Please double check your dates.'
+        else:
+            conn = mysql.connect()
+            cur = conn.cursor(pymysql.cursors.DictCursor)
+            query = 'SELECT supv FROM employees WHERE name = "%s"'%name
+            cur.execute(query)
+            supv = cur.fetchone()
+            not_assigned = supv['supv'] != current_user.name
+            if not_assigned:
+                message = 'You are not assigned as a supervisor for %s.'%name
+            else:
+                query = 'SELECT id, name, date, clock_in, clock_out, pto, \
+                    hours, approval FROM timesheet WHERE name = "%s" \
+                    AND date BETWEEN "%s" AND "%s" ORDER BY date'%(name, begin, end)
+                cur.execute(query)
+                results = cur.fetchall()
+                cur.close()
+                conn.close()
+                if len(results) == 0:
+                    message = 'There were no results for %s from %s \
+                        to %s. If you were expecting results, please \
+                        double check all fields.'%(name, dateBegin, dateEnd)
+                else:
+                    return render_template('supvresults.html', results=results)
+    return render_template('supv.html', form=form, message=message)
 
 # Supervisor Results route
 @app.route('/supvresults', methods=['POST'])
