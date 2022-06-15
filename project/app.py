@@ -67,46 +67,42 @@ def confirm():
     return render_template('confirm.html')
 
 # Login route
-@app.route('/login/<error>')
-def login(error):
+@app.route('/login', methods=['GET', 'POST'])
+def login():
     message = ''
     form = LoginForm()
-    if error == 'unauth':
-        message = 'You are not authorized to login in as your selection. \
-        If you meant to submit your hours, go back to the main hub and \
-        click on the correct link.'
-    elif error == 'fail':
-        message = 'Invalid email/password.'
+    if request.method == 'POST' and form.validate_on_submit():
+        conn = mysql.connect()
+        cur = conn.cursor(pymysql.cursors.DictCursor)
+        email = request.form['email']
+        password = request.form['password']
+        choice = request.form['choice']
+        query = 'SELECT * FROM employees WHERE email = "%s"'%email
+        cur.execute(query)
+        results = cur.fetchone()
+        cur.close()
+        conn.close()
+        # Valid login
+        if (results is not None and
+            check_password_hash(results['password'], password)):
+            # In HR
+            user = Employees.query.filter_by(email=email).first()
+            if results['is_hr'] == 1 and choice == 'hr':
+                login_user(user)
+                return redirect( url_for('hr'))
+            # Is a supervisor
+            elif results['is_supv'] == 1 and choice == 'supv':
+                login_user(user)
+                return redirect( url_for('supv'))
+            # Unauthorized
+            else: 
+                message = 'You are not authorized to login in as your \
+                    selection. If you meant to submit your hours, go \
+                    back to the main hub and click on the correct link.'
+        # Invalid login
+        else:
+            message = 'Invalid email/password.'
     return render_template('login.html', form=form, message=message)
-
-@app.route('/logincheck', methods=['POST'])
-def logincheck():
-    conn = mysql.connect()
-    cur = conn.cursor(pymysql.cursors.DictCursor)
-    email = request.form['email']
-    password = request.form['password']
-    choice = request.form['choice']
-    query = 'SELECT * FROM employees WHERE email = "%s"'%email
-    cur.execute(query)
-    results = cur.fetchone()
-    cur.close()
-    conn.close()
-    user = Employees.query.filter_by(email=email).first()
-    # Valid login
-    if len(results) != 0 and check_password_hash(results['password'], password):
-        # In HR
-        if results['is_hr'] == 1 and choice == 'hr':
-            login_user(user)
-            return redirect( url_for('hr'))
-        # Is a supervisor
-        elif results['is_supv'] == 1 and choice == 'supv':
-            login_user(user)
-            return redirect( url_for('supv'))
-        # Unauthorized
-        else: 
-            return redirect( url_for('login', error='unauth'))
-    # Invalid login
-    return redirect( url_for('login', error='fail')) 
 
 # HR Hub route
 @app.route('/hr', methods=['GET', 'POST'])
@@ -223,7 +219,6 @@ def logout():
 @app.route('/onboarding', methods=['GET', 'POST'])
 def onboarding():
     form = OnboardingForm(request.form)
-    message = ''
     if request.method == 'POST' and form.validate_on_submit():
         conn = mysql.connect()
         cur = conn.cursor(pymysql.cursors.DictCursor)

@@ -5,7 +5,7 @@
 <h3 class="pt-3">Login</h3>
 <hr>
   <p><strong>{{ message }}</strong></p>
-  <form method="POST" id="LoginForm" action="{{ url_for('logincheck') }}">
+  <form method="POST" id="LoginForm" action="{{ url_for('login') }}">
     {{ form.csrf_token }}
     {{ wtf.form_field(form.email) }}
     {{ wtf.form_field(form.password) }}
