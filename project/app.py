@@ -5,7 +5,7 @@ from datetime import datetime
 from __init__ import app, mysql
 from models import Employees
 from forms import HoursForm, LoginForm, HRSearchForm, SupvSearchForm, OnboardingForm
-import io, csv, pymysql
+import io, csv
 
 # Default route
 @app.route('/')
@@ -18,26 +18,31 @@ def hours():
     form = HoursForm(request.form)
     message = ''
     if request.method == 'POST' and form.validate_on_submit():
-        cur = mysql.connection.cursor()
-        email = form.email.data
-        password = form.password.data
-        query = 'SELECT name, password FROM employees WHERE \
-            email = %s'
-        cur.execute(query, [email])
-        results = cur.fetchall()
-        if check_password_hash(results[0][1], password):
-            name = results[0][0]
-            hours = request.form['hours']
-            date = request.form['date']
-            approval = 'Not Approved'
-            query = 'INSERT INTO timesheet (name, hours, date, approval) \
-                VALUES (%s, %s, %s, %s)'
-            cur.execute(query, (name, hours, date, approval))
-            mysql.connection.commit()
-            return redirect(url_for('confirm'))
-        else:
-            message = 'Invalid email/password.'
-        cur.close()
+        cur = None
+        try:
+            cur = mysql.connection.cursor()
+            email = form.email.data
+            password = form.password.data
+            query = 'SELECT name, password FROM employees WHERE \
+                email = %s'
+            cur.execute(query, [email])
+            results = cur.fetchall()
+            if check_password_hash(results[0][1], password):
+                name = results[0][0]
+                hours = request.form['hours']
+                date = request.form['date']
+                approval = 'Not Approved'
+                query = 'INSERT INTO timesheet (name, hours, date, approval) \
+                    VALUES (%s, %s, %s, %s)'
+                cur.execute(query, (name, hours, date, approval))
+                mysql.connection.commit()
+                return redirect(url_for('confirm'))
+            else:
+                message = 'Invalid email/password.'
+        except Exception as e:
+            print(e)
+        finally:
+            cur.close()
     # If the user input something incorrectly, one of these errors will be printed
     elif request.method == 'POST' and (not form.validate_on_submit()):
         if not isinstance(form.hours.data, (int, float)):
@@ -66,15 +71,19 @@ def login(error):
 
 @app.route('/logincheck', methods=['POST'])
 def logincheck():
-    conn = mysql.connect()
-    cur = conn.cursor(pymysql.cursors.DictCursor)
-    email = request.form['email']
-    password = request.form['password']
-    choice = request.form['choice']
-    query = 'SELECT * FROM employees WHERE email = %s'
-    cur.execute(query, [email])
-    results = cur.fetchall()
-    cur.close()
+    cur = None
+    try:
+        cur = mysql.connect.cursor()
+        email = request.form['email']
+        password = request.form['password']
+        choice = request.form['choice']
+        query = 'SELECT * FROM employees WHERE email = %s'
+        cur.execute(query, [email])
+        results = cur.fetchall()
+    except Exception as e:
+        print(e)
+    finally:
+        cur.close()
     user = Employees.query.filter_by(email=email).first()
     # Valid login
     if len(results) != 0 and check_password_hash(results[0][3], password):
@@ -103,21 +112,26 @@ def hr():
 @app.route('/hrresults', methods=['POST'])
 @login_required
 def hrresults():
-    cur = mysql.connection.cursor()
-    name = request.form['name']
-    dateBegin = request.form['dateBegin']
-    dateEnd = request.form['dateEnd']
-    choice = request.form['choice']
-    begin = datetime.strptime(dateBegin, '%Y-%m-%d').date()
-    end = datetime.strptime(dateEnd, '%Y-%m-%d').date()
-    end_first = (end < begin)
-    results = ()
-    if not end_first:
-        query = 'SELECT name, hours, date, approval FROM timesheet \
-            WHERE name = %s AND date BETWEEN %s AND %s ORDER BY date'
-        cur.execute(query, [name, begin, end])
-        results = cur.fetchall()
-    cur.close()
+    cur = None
+    try:
+        cur = mysql.connection.cursor()
+        name = request.form['name']
+        dateBegin = request.form['dateBegin']
+        dateEnd = request.form['dateEnd']
+        choice = request.form['choice']
+        begin = datetime.strptime(dateBegin, '%Y-%m-%d').date()
+        end = datetime.strptime(dateEnd, '%Y-%m-%d').date()
+        end_first = (end < begin)
+        results = ()
+        if not end_first:
+            query = 'SELECT name, hours, date, approval FROM timesheet \
+                WHERE name = %s AND date BETWEEN %s AND %s ORDER BY date'
+            cur.execute(query, [name, begin, end])
+            results = cur.fetchall()
+    except Exception as e:
+        print(e)
+    finally:
+        cur.close()
     if choice == 'browser' or len(results) == 0 or end_first:
         return render_template('hrresults.html', end_first=end_first, 
         results=results,  name=name, dateBegin=dateBegin, 
@@ -142,26 +156,31 @@ def supv(supvname):
 @app.route('/supvresults/<supvname>', methods=['POST'])
 @login_required
 def supvresults(supvname):
-    cur = mysql.connection.cursor()
-    name = request.form['name']
-    dateBegin = request.form['dateBegin']
-    dateEnd = request.form['dateEnd']
-    begin = datetime.strptime(dateBegin, '%Y-%m-%d').date()
-    end = datetime.strptime(dateEnd, '%Y-%m-%d').date()
-    not_assigned = None
-    results = ()
-    end_first = (end < begin)
-    if not end_first:
-        query = 'SELECT supv FROM employees WHERE name = %s'
-        cur.execute(query, [name])
-        supv = cur.fetchall()
-        not_assigned = supv[0][0] != supvname
-        if not not_assigned:
-            query = 'SELECT id, name, hours, date, approval FROM timesheet \
-                WHERE name = %s AND date BETWEEN %s AND %s ORDER BY date'
-            cur.execute(query, [name, begin, end])
-            results = cur.fetchall()
-    cur.close()
+    cur = None
+    try:
+        cur = mysql.connection.cursor()
+        name = request.form['name']
+        dateBegin = request.form['dateBegin']
+        dateEnd = request.form['dateEnd']
+        begin = datetime.strptime(dateBegin, '%Y-%m-%d').date()
+        end = datetime.strptime(dateEnd, '%Y-%m-%d').date()
+        not_assigned = None
+        results = ()
+        end_first = (end < begin)
+        if not end_first:
+            query = 'SELECT supv FROM employees WHERE name = %s'
+            cur.execute(query, [name])
+            supv = cur.fetchall()
+            not_assigned = supv[0][0] != supvname
+            if not not_assigned:
+                query = 'SELECT id, name, hours, date, approval FROM timesheet \
+                    WHERE name = %s AND date BETWEEN %s AND %s ORDER BY date'
+                cur.execute(query, [name, begin, end])
+                results = cur.fetchall()
+    except Exception as e:
+        print(e)
+    finally:
+        cur.close()
     return render_template('supvresults.html', end_first=end_first, 
         not_assigned=not_assigned, results=results, supvname=supvname, name=name, 
         dateBegin=dateBegin, dateEnd=dateEnd, empty=(len(results) == 0))
@@ -170,26 +189,31 @@ def supvresults(supvname):
 @app.route('/supvedits/<supvname>', methods=['POST'])
 @login_required
 def supvedits(supvname):
-    cur = mysql.connection.cursor()
-    id = request.form['id']
-    choice = request.form['choice']
-    query = 'SELECT approval FROM timesheet WHERE id = %s'
-    cur.execute(query, [id])
-    result = cur.fetchall()
-    # If the state of the record is what the user selected, redun is True
-    redun = ((result[0][0] == 'Approved' and choice == 'approve')
-        or (result[0][0] == 'Not Approved' and choice == 'unapprove'))
-    # Changes the state of the record
-    if not redun:
-        if choice == 'approve':
-            query = 'UPDATE timesheet SET approval = "Approved" \
-                WHERE id = %s'
-        else:
-            query = 'UPDATE timesheet SET approval = "Not Approved" \
-                WHERE id = %s'
+    cur = None
+    try:
+        cur = mysql.connection.cursor()
+        id = request.form['id']
+        choice = request.form['choice']
+        query = 'SELECT approval FROM timesheet WHERE id = %s'
         cur.execute(query, [id])
-        mysql.connection.commit()
-    cur.close()
+        result = cur.fetchall()
+        # If the state of the record is what the user selected, redun is True
+        redun = ((result[0][0] == 'Approved' and choice == 'approve')
+            or (result[0][0] == 'Not Approved' and choice == 'unapprove'))
+        # Changes the state of the record
+        if not redun:
+            if choice == 'approve':
+                query = 'UPDATE timesheet SET approval = "Approved" \
+                    WHERE id = %s'
+            else:
+                query = 'UPDATE timesheet SET approval = "Not Approved" \
+                    WHERE id = %s'
+            cur.execute(query, [id])
+            mysql.connection.commit()
+    except Exception as e:
+        print(e)
+    finally:
+        cur.close()
     return render_template('supvedits.html', supvname=supvname, 
         choice=choice, redun=redun)
     
@@ -205,22 +229,27 @@ def onboarding():
     form = OnboardingForm(request.form)
     message = ''
     if request.method == 'POST' and form.validate_on_submit():
-        cur = mysql.connection.cursor()
-        name = request.form['name']
-        email = request.form['email']
-        password = generate_password_hash(request.form['password'])
-        address = request.form['address']
-        phone = request.form['phone']
-        is_hr = request.form['is_hr']
-        supv = request.form['supv']
-        is_supv = request.form['is_supv']
-        query = 'INSERT INTO employees (name, email, password, \
-            address, phone, is_hr, supv, is_supv) VALUES \
-            (%s, %s, %s, %s, %s, %s, %s, %s)'
-        cur.execute(query, (name, email, password, 
-            address, phone, is_hr, supv, is_supv))
-        mysql.connection.commit()
-        cur.close()
+        cur = None
+        try:
+            cur = mysql.connection.cursor()
+            name = request.form['name']
+            email = request.form['email']
+            password = generate_password_hash(request.form['password'])
+            address = request.form['address']
+            phone = request.form['phone']
+            is_hr = request.form['is_hr']
+            supv = request.form['supv']
+            is_supv = request.form['is_supv']
+            query = 'INSERT INTO employees (name, email, password, \
+                address, phone, is_hr, supv, is_supv) VALUES \
+                (%s, %s, %s, %s, %s, %s, %s, %s)'
+            cur.execute(query, (name, email, password, 
+                address, phone, is_hr, supv, is_supv))
+            mysql.connection.commit()
+        except Exception as e:
+            print(e)
+        finally:
+            cur.close()
         return redirect(url_for('confirm'))
     # The password fields are the only things that can invalidate the form
     elif request.method == 'POST' and (not form.validate_on_submit()):

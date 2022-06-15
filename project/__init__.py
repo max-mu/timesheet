@@ -2,7 +2,7 @@ from flask import Flask
 from flask_bootstrap import Bootstrap
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
-from flask_mysqldb import MySQL
+from flaskext.mysql import MySQL
 
 app = Flask(__name__)
 # TODO: Change this key in the end
@@ -21,8 +21,8 @@ login_manager = LoginManager(app)
 def load_user(user_id):
     return Employees.query.get(user_id)
 
-app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = 'Test1234!'
-app.config['MYSQL_DB'] = 'ksldata'
-app.config['MYSQL_HOST'] = '127.0.0.1'
+app.config['MYSQL_DATABASE_USER'] = 'root'
+app.config['MYSQL_DATABASE_PASSWORD'] = 'Test1234!'
+app.config['MYSQL_DATABASE_DB'] = 'ksldata'
+app.config['MYSQL_DATABASE_HOST'] = '127.0.0.1'
 mysql = MySQL(app)
