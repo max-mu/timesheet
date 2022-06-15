@@ -1,4 +1,4 @@
-from flask import request, render_template, redirect, url_for, Response, send_file
+from flask import request, render_template, redirect, url_for, flash, send_file
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import login_user, login_required, logout_user
 from datetime import datetime
@@ -6,7 +6,7 @@ from __init__ import app, mysql
 from models import Employees
 from forms import HoursForm, LoginForm, HRSearchForm, SupvSearchForm, OnboardingForm
 import pandas as pd
-import io, csv, pymysql
+import pymysql
 
 # Default route
 @app.route('/')
@@ -33,11 +33,16 @@ def hours():
         result = cur.fetchone()
         if check_password_hash(result['password'], password):
             name = result['name']
-            hours = request.form['hours']
             date = request.form['date']
+            clock_in = request.form['clock_in']
+            clock_out = request.form['clock_out']
+            pto = request.form['pto']
+            hours = request.form['hours']
             approval = 'Not Approved'
-            query = 'INSERT INTO timesheet (name, hours, date, approval) \
-                VALUES ("%s", "%s", "%s", "%s")'%(name, hours, date, approval)
+            query = 'INSERT INTO timesheet (name,  date, clock_in, \
+                clock_out, pto, hours, approval) VALUES ("%s", "%s", \
+                "%s", "%s", "%s", "%s", "%s")'%(name, date, clock_in, 
+                clock_out, pto, hours, approval)
             cur.execute(query)
             conn.commit()
             cur.close()
@@ -49,10 +54,11 @@ def hours():
             message = 'Invalid email/password.'
     # If the user input something incorrectly, one of these errors will be printed
     elif request.method == 'POST' and (not form.validate_on_submit()):
-        if not isinstance(form.hours.data, (int, float)):
-            message = 'Please enter a numerical value for your hours.'
-        else:
-            message = 'Please formate the date as mm/dd/yyyy.'
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash('Error in {}: {}'.format(
+                    getattr(form, field).label.text, error
+                ), 'error')
     return render_template('hours.html', form=form, message=message)
 
 # Hours Confirmation route
@@ -241,8 +247,12 @@ def onboarding():
         return redirect(url_for('confirm'))
     # The password fields are the only things that can invalidate the form
     elif request.method == 'POST' and (not form.validate_on_submit()):
-        message = 'Your passwords did not match.'
-    return render_template('onboarding.html', form=form, message=message)
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash('Error: {}'.format(
+                    getattr(form, field).label.text, error
+                ), 'error')
+    return render_template('onboarding.html', form=form)
 
 # Error route
 @app.route('/error/<error>')

@@ -9,8 +9,12 @@ class HoursForm(FlaskForm):
     id = HiddenField()
     email = StringField(label='Email Address', validators=[InputRequired()])
     password = PasswordField(label='Password', validators=[InputRequired()])
-    hours = DecimalField(label='Hours you worked', validators=[InputRequired()])
     date = DateField(label='Date', validators=[InputRequired()], format='%Y-%m-%d')
+    clock_in = StringField(label='Clock In', validators=[InputRequired()])
+    clock_out = StringField(label='Clock Out', validators=[InputRequired()])
+    pto = DecimalField(label='Holiday & Paid Time Off', 
+        validators=[InputRequired()])
+    hours = DecimalField(label='Total Hours', validators=[InputRequired()])
     approved = HiddenField()
     submit = SubmitField(label='Submit')
 

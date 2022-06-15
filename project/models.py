@@ -33,12 +33,18 @@ class Timesheet(db.Model):
     __tablename__ = "timesheet"
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
-    hours = db.Column(db.Float)
     date = db.Column(db.String)
+    time_enter = db.Column(db.String)
+    time_leave = db.Column(db.String)
+    pto = db.Column(db.Float)
+    hours = db.Column(db.Float)
     approval = db.Column(db.String)
 
-    def __init__(self, name, hours, date, approval):
+    def __init__(self, name, date, time_enter, time_leave, pto, hours, approval):
         self.name = name
-        self.hours = hours
         self.date = date
+        self.hours = hours
+        self.time_enter = time_enter
+        self.time_leave = time_leave
+        self.pto = pto
         self.approval = approval
