@@ -4,7 +4,7 @@
 <div class="container">
   <h3 class="pt-3">Supervisor Hub</h3>
   <hr>
-  <form method="POST" id="search" action="{{ url_for('supvresults') }}">
+  <form method="POST" id="search" action="{{ url_for('supvresults', supvname=supvname) }}">
     {{ form.csrf_token }}
     {{ wtf.form_field(form.name) }}
     {{ wtf.form_field(form.dateBegin) }}

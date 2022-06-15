@@ -1,4 +1,5 @@
-from wtforms import SubmitField, StringField, PasswordField, DateField, FloatField, HiddenField, SelectField, RadioField
+from wtforms import SubmitField, StringField, PasswordField, DateField
+from wtforms import DecimalField, HiddenField, SelectField, RadioField, IntegerField
 from flask_wtf import FlaskForm
 from wtforms.validators import InputRequired, EqualTo
 from models import Employees
@@ -8,7 +9,7 @@ class HoursForm(FlaskForm):
     id = HiddenField()
     email = StringField(label='Email Address', validators=[InputRequired()])
     password = PasswordField(label='Password', validators=[InputRequired()])
-    hours = FloatField(label='Hours you worked', validators=[InputRequired()])
+    hours = DecimalField(label='Hours you worked', validators=[InputRequired()])
     date = DateField(label='Date', validators=[InputRequired()], format='%Y-%m-%d')
     approved = HiddenField()
     submit = SubmitField(label='Submit')
@@ -29,8 +30,20 @@ def get_name_choices():
         choices.append((data.name, data.name))
     return choices
 
-# Fetch Form
-class SearchForm(FlaskForm):
+# HR Search Form
+class HRSearchForm(FlaskForm):
+    name = SelectField(label='Name of the employee', 
+        validators=[InputRequired()], choices=get_name_choices())
+    dateBegin = DateField(label='First date you want your search to contain', 
+        validators=[InputRequired()], format='%Y-%m-%d')
+    dateEnd = DateField(label='Last date you want your search to contain', 
+        validators=[InputRequired()], format='%Y-%m-%d')
+    choice = RadioField(validators=[InputRequired()], 
+        choices=[('csv', 'CSV'), ('browser', 'Browser')], default='csv')
+    submit = SubmitField(label='Submit')
+
+# Supervisor Fetch Form
+class SupvSearchForm(FlaskForm):
     name = SelectField(label='Name of the employee', 
         validators=[InputRequired()], choices=get_name_choices())
     dateBegin = DateField(label='First date you want your search to contain', 
@@ -43,13 +56,14 @@ class SearchForm(FlaskForm):
 class OnboardingForm(FlaskForm):
     id = HiddenField()
     name = StringField(label='Name', validators=[InputRequired()])
-    email = HiddenField()
+    email = StringField(label='Email', validators=[InputRequired()])
     password = PasswordField(label='Password', validators=[InputRequired(), 
         EqualTo('confirm', message="The passwords don't match.")])
     confirm = PasswordField(label='Confirm Password', validators=[InputRequired()])
     address = StringField(label='Address', validators=[InputRequired()])
-    phone_num = StringField(label='Phone Number', validators=[InputRequired()])
-    is_hr = HiddenField()
-    is_supv = HiddenField()
-    supv = HiddenField()
+    phone = StringField(label='Phone Number', validators=[InputRequired()])
+    is_hr = IntegerField(label='Is HR', validators=[InputRequired()])
+    supv = StringField(label='Supervisor Name')
+    is_supv = IntegerField(label='Is Supervisor', validators=[InputRequired()])
+    is_active = HiddenField()
     submit = SubmitField(label='Submit')
