@@ -128,8 +128,6 @@ def hrresults():
             ORDER BY date'%(name, begin, end)
         cur.execute(query)
         results = cur.fetchall()
-    cur.close()
-    conn.close()
     if choice == 'browser' or len(results) == 0 or end_first:
         return render_template('hrresults.html', end_first=end_first, 
         results=results,  name=name, dateBegin=dateBegin, 
@@ -137,9 +135,15 @@ def hrresults():
     else:
         output = io.StringIO()
         writer = csv.writer(output)
+        line = ['Name, Hours, Date, Approval Status']
+        writer.writerow(line)
         for row in results:
-            writer.writerow(row)
+            line = [row['name'] + ',' + str(row['hours']) 
+                + ',' + str(row['date']) + ',' + row['approval']]
+            writer.writerow(line)
         output.seek(0)
+        cur.close()
+        conn.close()
         return Response(output, mimetype="text/csv", 
             headers={"Content-Dispostion":"attachment;filename=results.csv"})
 
