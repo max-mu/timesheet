@@ -5,11 +5,20 @@ from datetime import datetime
 from __init__ import app, mysql
 from models import Employees
 from forms import HoursForm, LoginForm, HRSearchForm, SupvSearchForm, OnboardingForm
-import io, csv
+import io, csv, pymysql
 
 # Default route
 @app.route('/')
 def index():
+    cur = conn = None
+    try:
+        conn = mysql.connect()
+        cur = conn.cursor(pymysql.cursors.DictCursor)
+    except Exception as e:
+        print(e)
+    finally:
+        cur.close()
+        conn.close()
     return render_template('index.html')
 
 # Hours Sumbission route

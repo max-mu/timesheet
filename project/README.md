@@ -11,7 +11,7 @@ pip install flask_login
 pip install pymysql
 sudo apt-get install mysql-server
 sudo apt-get install libmysqlclient-dev
-pip install flask_mysqldb
+pip install flask-mysql
 
 CSV
 pip install pandas
