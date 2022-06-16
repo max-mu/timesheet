@@ -1,5 +1,5 @@
-from wtforms import SubmitField, StringField, PasswordField, DateField
-from wtforms import DecimalField, HiddenField, SelectField, RadioField, IntegerField
+from wtforms import SubmitField, StringField, PasswordField, DateField, \
+    DecimalField, HiddenField, SelectField, RadioField, IntegerField
 from flask_wtf import FlaskForm
 from wtforms.validators import InputRequired, EqualTo
 from __init__ import mysql
