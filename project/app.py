@@ -114,6 +114,7 @@ def hr():
         begin = datetime.strptime(dateBegin, '%Y-%m-%d').date()
         end = datetime.strptime(dateEnd, '%Y-%m-%d').date()
         end_first = (end < begin)
+        # End date is before begin date
         if end_first:
             message = 'The end date was before the begin date. \
                 Please double check your dates.'
@@ -127,12 +128,15 @@ def hr():
             results = cur.fetchall()
             cur.close()
             conn.close()
+            # No results in time frame
             if len(results) == 0:
                 message = 'There were no results for %s from %s \
                     to %s. If you were expecting results, please \
                     double check all fields.'%(name, dateBegin, dateEnd)
+            # Displays results in a table in a browser
             elif choice == 'browser':
                 return render_template('hrresults.html', results=results)
+            # Exports results in a CSV
             else:
                 conn = mysql.connect()
                 csv_results = pd.read_sql_query(query, conn)
@@ -155,6 +159,7 @@ def supv():
         begin = datetime.strptime(dateBegin, '%Y-%m-%d').date()
         end = datetime.strptime(dateEnd, '%Y-%m-%d').date()
         end_first = (end < begin)
+        # End date is before begin date
         if end_first:
             message = 'The end date was before the begin date. \
                 Please double check your dates.'
@@ -165,6 +170,7 @@ def supv():
             cur.execute(query)
             supv = cur.fetchone()
             not_assigned = supv['supv'] != current_user.name
+            # Supervisor is not assigned to the employee
             if not_assigned:
                 message = 'You are not assigned as a supervisor for %s.'%name
             else:
@@ -175,12 +181,14 @@ def supv():
                 results = cur.fetchall()
                 cur.close()
                 conn.close()
+                # No results in the time frame
                 if len(results) == 0:
                     message = 'There were no results for %s from %s \
                         to %s. If you were expecting results, please \
                         double check all fields.'%(name, dateBegin, dateEnd)
                 else:
-                    return render_template('supvresults.html', results=results)
+                    return render_template('supvresults.html', results=results,
+                        first_flag=results[0]['id'])
     return render_template('supv.html', form=form, message=message)
 
 # Supervisor Results route
@@ -204,7 +212,7 @@ def supvresults():
         not_assigned = supv['supv'] != current_user.name
         if not not_assigned:
             query = 'SELECT id, name, date, clock_in, clock_out, \
-                pto, hours,approval FROM timesheet WHERE name = "%s" \
+                pto, hours, approval FROM timesheet WHERE name = "%s" \
                 AND date BETWEEN "%s" AND "%s" ORDER BY date'%(name, begin, end)
             cur.execute(query)
             results = cur.fetchall()
@@ -226,21 +234,18 @@ def supvedits():
     cur.execute(query, [id])
     result = cur.fetchone()
     # If the state of the record is what the user selected, redun is True
-    redun = ((result['approval'] == 'Approved' and choice == 'approve')
-        or (result['approval'] == 'Not Approved' and choice == 'unapprove'))
     # Changes the state of the record
-    if not redun:
-        if choice == 'approve':
-            query = 'UPDATE timesheet SET approval = "Approved" \
-                WHERE id = "%s"'%id
-        else:
-            query = 'UPDATE timesheet SET approval = "Not Approved" \
-                WHERE id = "%s"'%id
-        cur.execute(query)
-        conn.commit()
+    if choice == 'app_one':
+        query = 'UPDATE timesheet SET approval = "Approved" \
+            WHERE id = "%s"'%id
+    elif choice == 'unapp_one':
+        query = 'UPDATE timesheet SET approval = "Not Approved" \
+            WHERE id = "%s"'%id
+    cur.execute(query)
+    conn.commit()
     cur.close()
     conn.close()
-    return render_template('supvedits.html', choice=choice, redun=redun)
+    return render_template('supvedits.html', choice=choice)
     
 # Logout route
 @app.route('/logout')

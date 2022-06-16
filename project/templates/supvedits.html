@@ -1,24 +1,18 @@
 {% extends "bootstrap/base.html" %}
-{% import "bootstrap/wtf.html" as wtf %}
 {% block content %}
 <div class="container">
-<h3 class="pt-3">Supvervisor Edits</h3>
+<h3 class="pt-3">Confirmation</h3>
 <hr>
-{% if redun == True %}
-  {% if choice == 'approve' %}
-      <p class="pt-1"><strong>This entry has already been approved.</strong></p>
-  {% else %}
-      <p class="pt-1"><strong>This entry has not been approved yet.</strong></p>
-  {% endif %}
+{% if choice == 'app_one' %}
+  <p class="pt-1"><strong>This entry has been approved.</strong></p>
+{% elif choice == 'unapp_one' %}
+  <p class="pt-1"><strong>This entry has been unapproved.</strong></p>
+{% elif choice == 'app_one' %}
+  <p class="pt-1"><strong>All entries has been approved.</strong></p>
 {% else %}
-<table class="table">
-  {% if choice == 'approve' %}
-    <p class="pt-1"><strong>This entry has been approved.</strong></p>
-  {% else %}
-    <p class="pt-1"><strong>This entry has been unapproved.</strong></p>
-  {% endif %}
-</table>
+  <p class="pt-1"><strong>All entries has been unapproved.</strong></p>
 {% endif %}
+</table>
 <hr>
 <p><a href="{{ url_for('supv') }}">Go back to the Supvervisor Hub</a></p>
 <p><a href="{{ url_for('logout') }}">Logout</a></p>
