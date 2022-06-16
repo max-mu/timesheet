@@ -13,7 +13,7 @@ import pymysql
 def index():
     logout_user() # If the user returns from an error, they will be logged out
     return render_template('index.html', message='')
-    
+
 # Logout route
 @app.route('/logout')
 @login_required
@@ -25,7 +25,7 @@ def logout():
 # Hours Sumbission route
 @app.route('/hours', methods=['GET', 'POST'])
 def hours():
-    form = HoursForm(request.form)
+    form = HoursForm()
     message = ''
     if request.method == 'POST' and form.validate_on_submit():
         conn = mysql.connect()
@@ -110,7 +110,7 @@ def login():
 @login_required
 def hr():
     message = ''
-    form = HRSearchForm(request.form)
+    form = HRSearchForm()
     if request.method == 'POST' and form.validate_on_submit():
         name = request.form['name']
         begin_str = request.form['date_begin']
@@ -126,21 +126,36 @@ def hr():
         else:
             conn = mysql.connect()
             cur = conn.cursor(pymysql.cursors.DictCursor)
-            query = 'SELECT id, name, date, clock_in, clock_out, pto, \
-                hours, approval FROM timesheet WHERE name = "%s" \
-                AND date BETWEEN "%s" AND "%s" ORDER BY name, date'%(name, 
-                begin_conv, end_conv)
-            cur.execute(query)
-            results = cur.fetchall()
-            cur.close()
-            conn.close()
-            # No results in time frame
-            if len(results) == 0:
-                message = 'There were no results for %s from %s \
-                    to %s. If you were expecting results, please \
-                    double check all fields.'%(name, begin_str, end_str)
+            results = ()
+            if name == 'all':
+                query = 'SELECT id, name, date, clock_in, clock_out, pto, \
+                    hours, approval FROM timesheet WHERE  date BETWEEN \
+                    "%s" AND "%s" ORDER BY name, date'%(begin_conv, end_conv)
+                cur.execute(query)
+                results = cur.fetchall()
+                cur.close()
+                conn.close()
+                # No results in time frame
+                if len(results) == 0:
+                    message = 'There were no results from %s \
+                        to %s. If you were expecting results, please \
+                        double check all fields.'%(begin_str, end_str)
+            else:
+                query = 'SELECT id, name, date, clock_in, clock_out, pto, \
+                    hours, approval FROM timesheet WHERE name = "%s" \
+                    AND date BETWEEN "%s" AND "%s" ORDER BY date'%(name, 
+                    begin_conv, end_conv)
+                cur.execute(query)
+                results = cur.fetchall()
+                cur.close()
+                conn.close()
+                # No results in time frame
+                if len(results) == 0:
+                    message = 'There were no results for %s from %s \
+                        to %s. If you were expecting results, please \
+                        double check all fields.'%(name, begin_str, end_str)
             # Displays results in a table in a browser
-            elif choice == 'browser':
+            if choice == 'browser':
                 return render_template('hrresults.html', results=results)
             # Exports results in a CSV
             else:
@@ -157,7 +172,7 @@ def hr():
 @login_required
 def supv():
     message = ''
-    form = SupvSearchForm(request.form)
+    form = SupvSearchForm(current_user.name)
     if request.method == 'POST' and form.validate_on_submit():
         name = request.form['name']
         begin_str = request.form['date_begin']
@@ -172,18 +187,24 @@ def supv():
         else:
             conn = mysql.connect()
             cur = conn.cursor(pymysql.cursors.DictCursor)
-            query = 'SELECT supv FROM employees WHERE name = "%s"'%name
-            cur.execute(query)
-            supv = cur.fetchone()
-            not_assigned = supv['supv'] != current_user.name
-            # Supervisor is not assigned to the employee
-            if not_assigned:
-                message = 'You are not assigned as a supervisor for %s.'%name
+            if name == 'all':
+                query = 'SELECT id, name, date, clock_in, clock_out, pto, \
+                    hours, approval FROM timesheet WHERE date BETWEEN "%s" \
+                    AND "%s" ORDER BY name, date'%(begin_conv, end_conv)
+                cur.execute(query)
+                results = cur.fetchall()
+                cur.close()
+                conn.close()
+                # No results in the time frame
+                if len(results) == 0:
+                    message = 'There were no results from %s \
+                        to %s. If you were expecting results, please \
+                        double check all fields.'%(begin_str, end_str)
             else:
                 query = 'SELECT id, name, date, clock_in, clock_out, pto, \
                     hours, approval FROM timesheet WHERE name = "%s" \
-                    AND date BETWEEN "%s" AND "%s" ORDER BY name, \
-                    date'%(name, begin_conv, end_conv)
+                    AND date BETWEEN "%s" AND "%s" ORDER BY date'%(name, 
+                    begin_conv, end_conv)
                 cur.execute(query)
                 results = cur.fetchall()
                 cur.close()
@@ -193,10 +214,10 @@ def supv():
                     message = 'There were no results for %s from %s \
                         to %s. If you were expecting results, please \
                         double check all fields.'%(name, begin_str, end_str)
-                else:
-                    return render_template('supvresults.html', results=results,
-                        message='', first_id=results[0]['id'], 
-                        last_id=results[len(results)-1]['id'])
+            if message == '':
+                return render_template('supvresults.html', results=results,
+                    message=message, first_id=results[0]['id'], 
+                    last_id=results[len(results)-1]['id'])
     return render_template('supv.html', form=form, message=message)
 
 # Supervisor Results route
@@ -252,7 +273,7 @@ def supvresults():
 # Onboarding route
 @app.route('/onboarding', methods=['GET', 'POST'])
 def onboarding():
-    form = OnboardingForm(request.form)
+    form = OnboardingForm()
     if request.method == 'POST' and form.validate_on_submit():
         conn = mysql.connect()
         cur = conn.cursor(pymysql.cursors.DictCursor)
