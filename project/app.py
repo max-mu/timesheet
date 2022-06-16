@@ -11,11 +11,16 @@ import pymysql
 # Default route
 @app.route('/')
 def index():
-    conn = mysql.connect()
-    cur = conn.cursor(pymysql.cursors.DictCursor)
-    cur.close()
-    conn.close()
-    return render_template('index.html')
+    logout_user() # If the user returns from an error, they will be logged out
+    return render_template('index.html', message='')
+    
+# Logout route
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    message = 'You have been logged out.'
+    return render_template('index.html', message=message)
 
 # Hours Sumbission route
 @app.route('/hours', methods=['GET', 'POST'])
@@ -243,13 +248,6 @@ def supvresults():
     return render_template('supvresults.html', results=results, 
         message=message, first_id=results[0]['id'], 
         last_id=results[len(results)-1]['id'])
-    
-# Logout route
-@app.route('/logout')
-@login_required
-def logout():
-    logout_user()
-    return render_template('logout.html')
 
 # Onboarding route
 @app.route('/onboarding', methods=['GET', 'POST'])
@@ -286,7 +284,7 @@ def onboarding():
 
 # Error routes
 @app.errorhandler(401)
-def page_not_found(e):
+def unauthorized(e):
     return render_template('error.html', 
         pageheading="Unauthorized (Error 401)", error=e)
 
