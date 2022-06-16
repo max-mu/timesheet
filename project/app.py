@@ -284,10 +284,26 @@ def onboarding():
                 ), 'error')
     return render_template('onboarding.html', form=form)
 
-# Error route
-@app.route('/error/<error>')
-def error(error):
-    return 'An error has occured: %s'%error
+# Error routes
+@app.errorhandler(401)
+def page_not_found(e):
+    return render_template('error.html', 
+        pageheading="Unauthorized (Error 401)", error=e)
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('error.html', 
+        pageheading="Page not found (Error 404)", error=e)
+
+@app.errorhandler(405)
+def form_not_posted(e):
+    return render_template('error.html', 
+        pageheading="The form was not submitted (Error 405)", error=e)
+
+@app.errorhandler(500)
+def internal_server_error(e):
+    return render_template('error.html', 
+        pageheading="Internal server error (500)", error=e)
 
 if __name__ == '__main__':
     app.run()
