@@ -3,6 +3,7 @@ from flask_bootstrap import Bootstrap
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flaskext.mysql import MySQL
+from flask_principal import Principal
 
 app = Flask(__name__)
 # TODO: Change this key in the end
