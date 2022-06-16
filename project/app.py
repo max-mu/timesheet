@@ -108,12 +108,12 @@ def hr():
     form = HRSearchForm(request.form)
     if request.method == 'POST' and form.validate_on_submit():
         name = request.form['name']
-        dateBegin = request.form['dateBegin']
-        dateEnd = request.form['dateEnd']
+        begin_str = request.form['date_begin']
+        end_str = request.form['date_end']
         choice = request.form['choice']
-        begin = datetime.strptime(dateBegin, '%Y-%m-%d').date()
-        end = datetime.strptime(dateEnd, '%Y-%m-%d').date()
-        end_first = (end < begin)
+        begin_conv = datetime.strptime(begin_str, '%Y-%m-%d').date()
+        end_conv = datetime.strptime(end_str, '%Y-%m-%d').date()
+        end_first = (end_conv < begin_conv)
         # End date is before begin date
         if end_first:
             message = 'The end date was before the begin date. \
@@ -123,7 +123,8 @@ def hr():
             cur = conn.cursor(pymysql.cursors.DictCursor)
             query = 'SELECT id, name, date, clock_in, clock_out, pto, \
                 hours, approval FROM timesheet WHERE name = "%s" \
-                AND date BETWEEN "%s" AND "%s" ORDER BY date'%(name, begin, end)
+                AND date BETWEEN "%s" AND "%s" ORDER BY name, date'%(name, 
+                begin_conv, end_conv)
             cur.execute(query)
             results = cur.fetchall()
             cur.close()
@@ -132,7 +133,7 @@ def hr():
             if len(results) == 0:
                 message = 'There were no results for %s from %s \
                     to %s. If you were expecting results, please \
-                    double check all fields.'%(name, dateBegin, dateEnd)
+                    double check all fields.'%(name, begin_str, end_str)
             # Displays results in a table in a browser
             elif choice == 'browser':
                 return render_template('hrresults.html', results=results)
@@ -154,11 +155,11 @@ def supv():
     form = SupvSearchForm(request.form)
     if request.method == 'POST' and form.validate_on_submit():
         name = request.form['name']
-        dateBegin = request.form['dateBegin']
-        dateEnd = request.form['dateEnd']
-        begin = datetime.strptime(dateBegin, '%Y-%m-%d').date()
-        end = datetime.strptime(dateEnd, '%Y-%m-%d').date()
-        end_first = (end < begin)
+        begin_str = request.form['date_begin']
+        end_str = request.form['date_end']
+        begin_conv = datetime.strptime(begin_str, '%Y-%m-%d').date()
+        end_conv = datetime.strptime(end_str, '%Y-%m-%d').date()
+        end_first = (end_conv < begin_conv)
         # End date is before begin date
         if end_first:
             message = 'The end date was before the begin date. \
@@ -176,7 +177,8 @@ def supv():
             else:
                 query = 'SELECT id, name, date, clock_in, clock_out, pto, \
                     hours, approval FROM timesheet WHERE name = "%s" \
-                    AND date BETWEEN "%s" AND "%s" ORDER BY date'%(name, begin, end)
+                    AND date BETWEEN "%s" AND "%s" ORDER BY name, \
+                    date'%(name, begin_conv, end_conv)
                 cur.execute(query)
                 results = cur.fetchall()
                 cur.close()
@@ -185,67 +187,62 @@ def supv():
                 if len(results) == 0:
                     message = 'There were no results for %s from %s \
                         to %s. If you were expecting results, please \
-                        double check all fields.'%(name, dateBegin, dateEnd)
+                        double check all fields.'%(name, begin_str, end_str)
                 else:
                     return render_template('supvresults.html', results=results,
-                        first_flag=results[0]['id'])
+                        message='', first_id=results[0]['id'], 
+                        last_id=results[len(results)-1]['id'])
     return render_template('supv.html', form=form, message=message)
 
 # Supervisor Results route
 @app.route('/supvresults', methods=['POST'])
 @login_required
 def supvresults():
+    list = request.form.getlist('selection')
     conn = mysql.connect()
     cur = conn.cursor(pymysql.cursors.DictCursor)
     name = request.form['name']
-    dateBegin = request.form['dateBegin']
-    dateEnd = request.form['dateEnd']
-    begin = datetime.strptime(dateBegin, '%Y-%m-%d').date()
-    end = datetime.strptime(dateEnd, '%Y-%m-%d').date()
-    not_assigned = None
-    results = ()
-    end_first = (end < begin)
-    if not end_first:
-        query = 'SELECT supv FROM employees WHERE name = "%s"'%name
+    date_begin = request.form['date_begin']
+    date_end = request.form['date_end']
+    message = ''
+    if len(list) == 0:
+        query = 'SELECT id, name, date, clock_in, clock_out, pto, hours, \
+            approval FROM timesheet WHERE name = "%s" AND date BETWEEN \
+            "%s" AND "%s" ORDER BY name, date'%(name, date_begin, 
+            date_end)
         cur.execute(query)
-        supv = cur.fetchone()
-        not_assigned = supv['supv'] != current_user.name
-        if not not_assigned:
-            query = 'SELECT id, name, date, clock_in, clock_out, \
-                pto, hours, approval FROM timesheet WHERE name = "%s" \
-                AND date BETWEEN "%s" AND "%s" ORDER BY date'%(name, begin, end)
-            cur.execute(query)
-            results = cur.fetchall()
-        cur.close()
-        conn.close()
-    return render_template('supvresults.html', end_first=end_first, 
-        not_assigned=not_assigned, results=results, name=name, 
-        dateBegin=dateBegin, dateEnd=dateEnd, empty=(len(results) == 0))
-
-# Supervisor Approval/Unapproval route
-@app.route('/supvedits', methods=['POST'])
-@login_required
-def supvedits():
-    conn = mysql.connect()
-    cur = conn.cursor(pymysql.cursors.DictCursor)
-    id = request.form['id']
+        results = cur.fetchall()
+        message = 'You did not select any entries. Please select at least one \
+            entry before proceeding.'
+        return render_template('supvresults.html', results=results, 
+            message=message, first_id=results[0]['id'], 
+            last_id=results[len(results)-1]['id'])
     choice = request.form['choice']
-    query = 'SELECT approval FROM timesheet WHERE id = %s'
-    cur.execute(query, [id])
-    result = cur.fetchone()
-    # If the state of the record is what the user selected, redun is True
-    # Changes the state of the record
-    if choice == 'app_one':
-        query = 'UPDATE timesheet SET approval = "Approved" \
-            WHERE id = "%s"'%id
-    elif choice == 'unapp_one':
-        query = 'UPDATE timesheet SET approval = "Not Approved" \
-            WHERE id = "%s"'%id
+    if choice == 'approve':
+        for id in list:
+            query = 'UPDATE timesheet SET approval = "Approved" WHERE \
+                id = "%s"'%id
+            cur.execute(query)
+            conn.commit()
+    else:
+        for id in list:
+            query = 'UPDATE timesheet SET approval = "Not Approved" WHERE \
+                id = "%s"'%id
+            cur.execute(query)
+            conn.commit()
+    query = 'SELECT id, name, date, clock_in, clock_out, pto, hours, \
+        approval FROM timesheet WHERE name = "%s" AND date BETWEEN \
+        "%s" AND "%s" ORDER BY name, date'%(name, date_begin, 
+        date_end)
     cur.execute(query)
-    conn.commit()
-    cur.close()
-    conn.close()
-    return render_template('supvedits.html', choice=choice)
+    results = cur.fetchall()
+    if choice == 'approve':
+        message = 'All selected entries were approved.'
+    else:
+        message = 'All selected entries were unapproved.'
+    return render_template('supvresults.html', results=results, 
+        message=message, first_id=results[0]['id'], 
+        last_id=results[len(results)-1]['id'])
     
 # Logout route
 @app.route('/logout')

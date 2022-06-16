@@ -4,12 +4,12 @@
 <div class="container">
 <h3 class="pt-3">HR Hub</h3>
 <hr>
-  <p><strong>{{ message }}</strong></p>
+<p><strong>{{ message }}</strong></p>
   <form method="POST" id="search" action="{{ url_for('hr') }}">
     {{ form.csrf_token }}
     {{ wtf.form_field(form.name) }}
-    {{ wtf.form_field(form.dateBegin) }}
-    {{ wtf.form_field(form.dateEnd) }}
+    {{ wtf.form_field(form.date_begin) }}
+    {{ wtf.form_field(form.date_end) }}
     {{ wtf.form_field(form.choice) }}
     <p class="pt-1"></p>
     {{ wtf.form_field(form.submit) }}

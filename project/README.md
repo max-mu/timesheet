@@ -1,6 +1,6 @@
 Python 3
 
-Run:
+Package Installations:
 pip install flask
 pip install wheel
 pip install flask_bootstrap4
@@ -11,6 +11,4 @@ pip install pymysql
 sudo apt-get install mysql-server
 sudo apt-get install libmysqlclient-dev
 pip install flask-mysql
-
-CSV
 pip install pandas

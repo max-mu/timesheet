@@ -38,9 +38,9 @@ def get_name_choices():
 class HRSearchForm(FlaskForm):
     name = SelectField(label='Name of the employee', 
         validators=[InputRequired()], choices=get_name_choices())
-    dateBegin = DateField(label='First date you want your search to contain', 
+    date_begin = DateField(label='First date you want your search to contain', 
         validators=[InputRequired()], format='%Y-%m-%d')
-    dateEnd = DateField(label='Last date you want your search to contain', 
+    date_end = DateField(label='Last date you want your search to contain', 
         validators=[InputRequired()], format='%Y-%m-%d')
     choice = RadioField(validators=[InputRequired()], 
         choices=[('csv', 'CSV'), ('browser', 'Browser')], default='csv')
@@ -50,9 +50,9 @@ class HRSearchForm(FlaskForm):
 class SupvSearchForm(FlaskForm):
     name = SelectField(label='Name of the employee', 
         validators=[InputRequired()], choices=get_name_choices())
-    dateBegin = DateField(label='First date you want your search to contain', 
+    date_begin = DateField(label='First date you want your search to contain', 
         validators=[InputRequired()], format='%Y-%m-%d')
-    dateEnd = DateField(label='Last date you want your search to contain', 
+    date_end = DateField(label='Last date you want your search to contain', 
         validators=[InputRequired()], format='%Y-%m-%d')
     submit = SubmitField(label='Submit')
 
