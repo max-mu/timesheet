@@ -180,13 +180,14 @@ def hours_search():
                     last_id=results[len(results) - 1]['id'])
     return render_template('hourssearch.html', form=form, message=message)
 
-# Hours Results route, should only be redirected from hoursedits.html
+# Hours Results route, should only be redirected from edits.html
 @app.route('/hoursresults', methods=['POST'])
 @login_required
 def hours_results():
     conn = mysql.connect()
     cur = conn.cursor(pymysql.cursors.DictCursor)
     id = request.form['id']
+    name = request.form['name']
     date = request.form['date']
     clock_in = request.form['clock_in']
     clock_out = request.form['clock_out']
@@ -195,20 +196,41 @@ def hours_results():
     approval = 'Not Approved'
     first_date = request.form['first_date']
     last_date = request.form['last_date']
+    type = request.form['type']
     query = 'UPDATE timesheet SET date = "%s", clock_in = "%s", \
         clock_out = "%s", pto = "%s", hours = "%s", approval = "%s" \
         WHERE id = "%s"'%(date, clock_in, clock_out, pto, hours, approval, id)
     cur.execute(query)
     conn.commit()
-    query = 'SELECT * FROM timesheet WHERE name = "%s" AND date BETWEEN \
-        "%s" AND "%s" ORDER BY date'%(current_user.name, first_date, last_date)
+    if type == 'supv_all':
+        query = 'SELECT timesheet.id, timesheet.name, date, clock_in, \
+            clock_out, pto, hours, approval, supv FROM timesheet INNER \
+            JOIN employees ON employees.name=timesheet.name WHERE supv = \
+            "%s" AND date BETWEEN "%s" AND "%s" ORDER BY name, date'%(
+            current_user.name, first_date, last_date)
+    else:
+        query = 'SELECT * FROM timesheet WHERE name = "%s" AND date BETWEEN \
+            "%s" AND "%s" ORDER BY date'%(name, first_date, last_date)
     cur.execute(query)
     results = cur.fetchall()
     cur.close()
     conn.close()
-    message = 'Your entry has been updated and unapproved.'
-    return render_template('hoursresults.html', results=results, message=message,
-        first_id=results[0]['id'], last_id=results[len(results) - 1]['id'])
+    message = 'The entry has been updated and unapproved.'
+    # Gets redirected to employee search results
+    if type == 'employ':
+        return render_template('hoursresults.html', results=results, 
+            message=message, first_id=results[0]['id'], 
+            last_id=results[len(results) - 1]['id'])
+    # Redirected to supverisor search results, only one employee searched
+    elif type == 'supv':
+        return render_template('supvresults.html', results=results, 
+            message=message, first_id=results[0]['id'], 
+            last_id=results[len(results) - 1]['id'], all_flag=False)
+    # Redirected to supverisor search results, all employees searched
+    else:
+        return render_template('supvresults.html', results=results, 
+            message=message, first_id=results[0]['id'], 
+            last_id=results[len(results) - 1]['id'], all_flag=True)
 
 # Hours Edits route
 @app.route('/hoursedits', methods=['GET', 'POST'])
@@ -216,17 +238,37 @@ def hours_results():
 def hours_edits():
     conn = mysql.connect()
     cur = conn.cursor(pymysql.cursors.DictCursor)
-    id = request.form['choice']
+    choice = request.form['choice']
+    id = request.form['id']
     first_date = request.form['first_date']
     last_date = request.form['last_date']
-    query = 'SELECT * FROM timesheet WHERE id = "%s"'%id
-    cur.execute(query)
-    result = cur.fetchone()
-    cur.close()
-    conn.close()
-    form = HoursForm()
-    return render_template('hoursedits.html', result=result, id=id,
-        first_date=first_date, last_date=last_date, form=form)
+    # Action was edit
+    if choice == 'edit':
+        query = 'SELECT * FROM timesheet WHERE id = "%s"'%id
+        cur.execute(query)
+        result = cur.fetchone()
+        cur.close()
+        conn.close()
+        form = HoursForm()
+        return render_template('edits.html', result=result, name=current_user.name,
+            id=id,first_date=first_date, last_date=last_date, form=form, 
+            type='employ')
+    # Action was delete
+    else:
+        query = 'DELETE FROM timesheet WHERE id = "%s"'%id
+        cur.execute(query)
+        conn.commit()
+        query = 'SELECT * FROM timesheet WHERE name = "%s" AND date BETWEEN \
+            "%s" AND "%s" ORDER BY date'%(current_user.name, first_date, 
+            last_date)
+        cur.execute(query)
+        results = cur.fetchall()
+        cur.close()
+        conn.close()
+        message = 'The entry has been deleted.'
+        return render_template('hoursresults.html', results=results, 
+            message=message, first_id=results[0]['id'], 
+            last_id=results[len(results) - 1]['id'])
 
 # HR Hub route
 @app.route('/hr', methods=['GET', 'POST'])
@@ -365,19 +407,20 @@ def supv_results():
     last_date = request.form['last_date']
     all_flag = request.form['all_flag']
     message = ''
+    last_query = ''
+    if all_flag:
+        last_query = 'SELECT timesheet.id, timesheet.name, date, clock_in, \
+            clock_out, pto, hours, approval, supv FROM timesheet INNER \
+            JOIN employees ON employees.name=timesheet.name WHERE supv = \
+            "%s" AND date BETWEEN "%s" AND "%s" ORDER BY name, date'%(
+            current_user.name, first_date, last_date)
+    else:
+        last_query = 'SELECT * FROM timesheet WHERE name = "%s" AND date BETWEEN \
+            "%s" AND "%s" ORDER BY name, date'%(name, first_date,
+            last_date)
     # If no records were selected
     if len(list) == 0:
-        if all_flag:
-            query = 'SELECT timesheet.id, timesheet.name, date, clock_in, \
-                clock_out, pto, hours, approval, supv FROM timesheet INNER \
-                JOIN employees ON employees.name=timesheet.name WHERE supv = \
-                "%s" AND date BETWEEN "%s" AND "%s" ORDER BY name, date'%(
-                current_user.name, first_date, last_date)
-        else:
-            query = 'SELECT * FROM timesheet WHERE name = "%s" AND date BETWEEN \
-                "%s" AND "%s" ORDER BY name, date'%(name, first_date,
-                last_date)
-        cur.execute(query)
+        cur.execute(last_query)
         results = cur.fetchall()
         message = 'You did not select any entries. Please select at least one \
             entry before proceeding.'
@@ -387,14 +430,51 @@ def supv_results():
             message=message, first_id=results[0]['id'], 
             last_id=results[len(results)-1]['id'], all_flag=all_flag)
     choice = request.form['choice']
-    # There was at least one record selected
-    if choice == 'approve':
+    # Edit
+    if choice == 'edit':
+        # Checks to see if there is more than one entry selected
+        if len(list) > 1:
+            message = 'You can only edit one entry at a time. Please only \
+                select one entry.'
+        else:
+            id = list[0]
+            query = 'SELECT * FROM timesheet WHERE id = "%s"'%id
+            cur.execute(query)
+            result = cur.fetchone()
+            cur.close()
+            conn.close()
+            form = HoursForm()
+            if all_flag:
+                return render_template('edits.html', result=result, name=name,
+                    id=id, first_date=first_date, last_date=last_date, 
+                    form=form, type='supv_all')
+            else:
+                return render_template('edits.html', result=result, name=name,
+                    id=id, first_date=first_date, last_date=last_date, 
+                    form=form, type='supv')
+    # Delete
+    elif choice == 'delete':
+        for id in list:
+            query = 'DELETE FROM timesheet WHERE id = "%s"'%id
+            cur.execute(query)
+            conn.commit()
+        cur.execute(last_query)
+        results = cur.fetchall()
+        cur.close()
+        conn.close()
+        message = 'The entry has been deleted.'
+        return render_template('supvresults.html', results=results, 
+            message=message, first_id=results[0]['id'], 
+            last_id=results[len(results) - 1]['id'], all_flag=all_flag)
+    # Approve
+    elif choice == 'approve':
         message = 'All selected entries were approved.'
         for id in list:
             query = 'UPDATE timesheet SET approval = "Approved" WHERE \
                 id = "%s"'%id
             cur.execute(query)
             conn.commit()
+    # Unappove
     else:
         message = 'All selected entries were unapproved.'
         for id in list:
@@ -402,17 +482,7 @@ def supv_results():
                 id = "%s"'%id
             cur.execute(query)
             conn.commit()
-    if request.form['all_flag']:
-        query = 'SELECT timesheet.id, timesheet.name, date, clock_in, \
-            clock_out, pto, hours, approval, supv FROM timesheet INNER \
-            JOIN employees ON employees.name=timesheet.name WHERE supv = \
-            "%s" AND date BETWEEN "%s" AND "%s" ORDER BY name, date'%(
-            current_user.name, first_date, last_date)
-    else:
-        query = 'SELECT * FROM timesheet WHERE name = "%s" AND date BETWEEN \
-            "%s" AND "%s" ORDER BY name, date'%(name, first_date, 
-            last_date)
-    cur.execute(query)
+    cur.execute(last_query)
     results = cur.fetchall()
     cur.close()
     conn.close()

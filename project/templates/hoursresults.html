@@ -21,7 +21,7 @@
   {% for data in results %}
     {% if first_id==data['id'] %}
       <tr>
-        <td class="center-align"><input type="radio" class="radio" name="choice" value="{{ data['id'] }}" checked required></td>
+        <td class="center-align"><input type="radio" class="radio" name="id" value="{{ data['id'] }}" checked required></td>
         <td>{{ data['name'] }}</td>
         <td>{{ data['date'] }}</td>
         <td>{{ data['clock_in'] }}</td>
@@ -36,7 +36,7 @@
         <input type="hidden" name="last_date" value="{{ data['date'] }}">
       {% endif %}
       <tr>
-        <td class="center-align"><input type="radio" class="radio" name="choice" value="{{ data['id'] }}" required></td>
+        <td class="center-align"><input type="radio" class="radio" name="id" value="{{ data['id'] }}" required></td>
         <td>{{ data['name'] }}</td>
         <td>{{ data['date'] }}</td>
         <td>{{ data['clock_in'] }}</td>
@@ -49,11 +49,17 @@
 {% endfor %}
 </table>
 
-<p>Select which entry you would like to edit.</p>
-<p>Note: if your entry is currently approved, it will need to be reapproved if edited.</p>
+<p>Select which entry you would like to edit/remove.</p>
+<p>Note: any entries that are edited will be unapproved.</p>
+<div class="form-check form-check-inline">
+  <label class="form-check-label"><input class="form-check-input" type="radio" name="choice" value="edit" checked required> Edit entry</label>
+</div>
+<div class="form-check form-check-inline">
+  <label class="form-check-label"><input class="form-check-input" type="radio" name="choice" value="delete" required> Delete entry</label>
+</div>
 
 <div class="form-group">
-  <p><input class="btn btn-primary" type="submit" value="Submit Choice"></p>
+  <p class="pt-3"><input class="btn btn-primary" type="submit" value="Submit Choice"></p>
 </div>
 </form>
 <hr>

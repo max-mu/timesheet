@@ -7,6 +7,7 @@
 <form method="POST" id="EmployHoursForm" action="{{ url_for('hours_results') }}">
   {{ form.csrf_token }}
   <input type="hidden" name="id" value="{{ id }}">
+  <input type="hidden" name="name" value="{{ name }}">
   {{ wtf.form_field(form.date, value=result['date']) }}
   {{ wtf.form_field(form.clock_in, value=result['clock_in']) }}
   {{ wtf.form_field(form.clock_out, value=result['clock_out']) }}
@@ -15,6 +16,7 @@
   {{ wtf.form_field(form.submit) }}
   <input type="hidden" name="first_date" value="{{ first_date }}">
   <input type="hidden" name="last_date" value="{{ last_date }}">
+  <input type="hidden" name="type" value="{{ type }}">
 </form>
 <hr>
 <p><a href="{{ url_for('hours') }}">Go back to the Employee Hub</a></p>
