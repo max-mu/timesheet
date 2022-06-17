@@ -137,9 +137,9 @@ def login():
                 message = 'You are not authorized to login in as your \
                     selection. If you meant to submit your hours, go \
                     back to the main hub and click on the correct link.'
-            logout_user()
-            identity_changed.send(current_app._get_current_object(),
-                identity=AnonymousIdentity())
+                logout_user()
+                identity_changed.send(current_app._get_current_object(),
+                    identity=AnonymousIdentity())
         # Invalid login
         else:
             message = 'Invalid email/password.'
