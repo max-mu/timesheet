@@ -1,0 +1,19 @@
+{% extends "bootstrap/base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+{% block content %}
+<div class="container">
+<h3 class="pt-3">Hours Inquiry</h3>
+<hr>
+<p><strong>{{ message }}</strong></p>
+<form method="POST" id="LoginForm" action="{{ url_for('hours_search') }}">
+  {{ form.csrf_token }}
+  {{ wtf.form_field(form.date_begin) }}
+  {{ wtf.form_field(form.date_end) }}
+  {{ wtf.form_field(form.submit) }}
+</form>
+<hr>
+<p><a href="{{ url_for('hours') }}">Go back to the Employee Hub</a></p>
+<p><a href="{{ url_for('index') }}">Go back to the Main Hub</a></p>
+<hr>
+</div>
+{% endblock %}

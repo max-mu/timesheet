@@ -12,7 +12,7 @@ class HoursForm(FlaskForm):
         validators=[InputRequired()], format='%Y-%m-%d')
     clock_in = StringField(label='Clock In', validators=[InputRequired()])
     clock_out = StringField(label='Clock Out', validators=[InputRequired()])
-    pto = DecimalField(label='Holiday & Paid Time Off', 
+    pto = DecimalField(label='Holiday/Paid Time Off', 
         validators=[InputRequired()])
     hours = DecimalField(label='Total Hours', validators=[InputRequired()])
     approved = HiddenField()
@@ -23,8 +23,9 @@ class LoginForm(FlaskForm):
     email = StringField(label='Email Address', validators=[InputRequired()])
     password = PasswordField(label='Password', validators=[InputRequired()])
     choice = RadioField(validators=[InputRequired()], 
-        choices=[('hours', 'Submit/Adjust hours'), 
-        ('supv', 'Login as supervisor'), ('hr', 'Login as HR')], default='hours')
+        choices=[('hours', 'Submit/Adjust your hours'), 
+        ('supv', 'Login as supervisor'), 
+        ('hr', 'Login as HR')], default='hours')
     login = SubmitField(label='Login')
 
 # Generates the list of names of employees for FetchForm
@@ -43,6 +44,14 @@ def get_name_choices(type, supv):
     for data in list:
         choices.append((data['name'], data['name']))
     return choices
+
+# HR Search Form
+class EmploySearchForm(FlaskForm):
+    date_begin = DateField(label='First date you want your search to contain', 
+        validators=[InputRequired()], format='%Y-%m-%d')
+    date_end = DateField(label='Last date you want your search to contain', 
+        validators=[InputRequired()], format='%Y-%m-%d')
+    submit = SubmitField(label='Submit')
 
 # HR Search Form
 class HRSearchForm(FlaskForm):

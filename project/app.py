@@ -6,7 +6,7 @@ from datetime import datetime
 from __init__ import app, mysql
 from models import Employees
 from forms import HoursForm, LoginForm, HRSearchForm, SupvSearchForm, \
-    OnboardingForm
+    OnboardingForm, EmploySearchForm
 from flask_principal import Identity, AnonymousIdentity, Permission, \
     identity_changed, identity_loaded, RoleNeed, PermissionDenied
 import pandas as pd
@@ -98,10 +98,22 @@ def login():
             message = 'Invalid email/password.'
     return render_template('login.html', form=form, message=message)
 
-# Hours Sumbission route
+# Employee Hub route
 @app.route('/hours', methods=['GET', 'POST'])
 @login_required
 def hours():
+    if request.method == 'POST':
+        choice = request.form['choice']
+        if choice == 'submit':
+            return redirect( url_for('hours_submit'))
+        else:
+            return redirect( url_for('hours_search'))
+    return render_template('hours.html', name=current_user.name)
+
+# Hours Sumbission route
+@app.route('/hourssubmit', methods=['GET', 'POST'])
+@login_required
+def hours_submit():
     form = HoursForm()
     if request.method == 'POST' and form.validate_on_submit():
         conn = mysql.connect()
@@ -121,7 +133,7 @@ def hours():
         conn.commit()
         cur.close()
         conn.close()
-        return render_template('confirm.html')
+        return render_template('confirm.html', hours=True)
     # If the user input something incorrectly, one of these errors will be printed
     elif request.method == 'POST' and (not form.validate_on_submit()):
         for field, errors in form.errors.items():
@@ -129,7 +141,50 @@ def hours():
                 flash('Error in {}: {}'.format(
                     getattr(form, field).label.text, error
                 ), 'error')
-    return render_template('hours.html', form=form)
+    return render_template('hours_submit.html', form=form)
+
+# Hours View route
+@app.route('/hourssearch', methods=['GET', 'POST'])
+@login_required
+def hours_search():
+    message = ''
+    form = EmploySearchForm()
+    if request.method == 'POST' and form.validate_on_submit():
+        begin_str = request.form['date_begin']
+        end_str = request.form['date_end']
+        begin_conv = datetime.strptime(begin_str, '%Y-%m-%d').date()
+        end_conv = datetime.strptime(end_str, '%Y-%m-%d').date()
+        end_first = (end_conv < begin_conv)
+        # End date is before begin date
+        if end_first:
+            message = 'The end date was before the begin date. \
+                Please double check your dates.'
+        else:
+            conn = mysql.connect()
+            cur = conn.cursor(pymysql.cursors.DictCursor)
+            query = 'SELECT id, name, date, clock_in, clock_out, pto, \
+                    hours, approval FROM timesheet WHERE name = "%s" \
+                    AND date BETWEEN "%s" AND "%s" ORDER BY date'%(
+                    current_user.name, begin_conv, end_conv)
+            cur.execute(query)
+            results = cur.fetchall()
+            cur.close()
+            conn.close()
+            # No results in the time frame
+            if len(results) == 0:
+                message = 'There were no results from %s \
+                    to %s. If you were expecting results, please \
+                    double check all fields.'%(begin_str, end_str)
+            else:
+                return render_template('hoursresults.html', results=results,
+                    first_flag=results[0]['id'])
+    return render_template('hourssearch.html', form=form, message=message)
+
+# Hours Adjust route
+@app.route('/hoursresults', methods=['GET', 'POST'])
+@login_required
+def hours_results():
+    pass
 
 # HR Hub route
 @app.route('/hr', methods=['GET', 'POST'])
@@ -155,7 +210,7 @@ def hr():
             results = ()
             if name == 'all':
                 query = 'SELECT id, name, date, clock_in, clock_out, pto, \
-                    hours, approval FROM timesheet WHERE  date BETWEEN \
+                    hours, approval FROM timesheet WHERE date BETWEEN \
                     "%s" AND "%s" ORDER BY name, date'%(begin_conv, end_conv)
                 cur.execute(query)
                 results = cur.fetchall()
@@ -180,17 +235,18 @@ def hr():
                     message = 'There were no results for %s from %s \
                         to %s. If you were expecting results, please \
                         double check all fields.'%(name, begin_str, end_str)
-            # Displays results in a table in a browser
-            if choice == 'browser':
-                return render_template('hrresults.html', results=results)
-            # Exports results in a CSV
-            else:
-                conn = mysql.connect()
-                csv_results = pd.read_sql_query(query, conn)
-                df = pd.DataFrame(csv_results)
-                df.to_csv(r'results.csv', index=False)
-                conn.close()
-                return send_file('results.csv', as_attachment=True)
+                if message == '':
+                    # Displays results in a table in a browser
+                    if choice == 'browser':
+                        return render_template('hrresults.html', results=results)
+                    # Exports results in a CSV
+                    else:
+                        conn = mysql.connect()
+                        csv_results = pd.read_sql_query(query, conn)
+                        df = pd.DataFrame(csv_results)
+                        df.to_csv(r'results.csv', index=False)
+                        conn.close()
+                        return send_file('results.csv', as_attachment=True)
     return render_template('hr.html', form=form, message=message)
 
 # Supervisor Hub route
@@ -215,9 +271,11 @@ def supv():
             conn = mysql.connect()
             cur = conn.cursor(pymysql.cursors.DictCursor)
             if name == 'all':
-                query = 'SELECT id, name, date, clock_in, clock_out, pto, \
-                    hours, approval FROM timesheet WHERE date BETWEEN "%s" \
-                    AND "%s" ORDER BY name, date'%(begin_conv, end_conv)
+                query = 'SELECT timesheet.id, timesheet.name, date, clock_in, \
+                    clock_out, pto, hours, approval, supv FROM timesheet INNER \
+                    JOIN employees ON employees.name=timesheet.name WHERE supv = \
+                    "%s" AND date BETWEEN "%s" AND "%s" ORDER BY name, date'%(
+                    current_user.name, begin_conv, end_conv)
                 cur.execute(query)
                 results = cur.fetchall()
                 cur.close()
@@ -242,7 +300,7 @@ def supv():
                         to %s. If you were expecting results, please \
                         double check all fields.'%(name, begin_str, end_str)
             if message == '':
-                return render_template('supvresults.html', results=results,
+                return render_template('supv_results.html', results=results,
                     message=message, first_id=results[0]['id'], 
                     last_id=results[len(results)-1]['id'])
     return render_template('supv.html', form=form, message=message)
@@ -250,7 +308,7 @@ def supv():
 # Supervisor Results route
 @app.route('/supvresults', methods=['POST'])
 @supv_permission.require()
-def supvresults():
+def supv_results():
     list = request.form.getlist('selection')
     conn = mysql.connect()
     cur = conn.cursor(pymysql.cursors.DictCursor)
@@ -267,7 +325,7 @@ def supvresults():
         results = cur.fetchall()
         message = 'You did not select any entries. Please select at least one \
             entry before proceeding.'
-        return render_template('supvresults.html', results=results, 
+        return render_template('supv_results.html', results=results, 
             message=message, first_id=results[0]['id'], 
             last_id=results[len(results)-1]['id'])
     choice = request.form['choice']
@@ -293,7 +351,7 @@ def supvresults():
         message = 'All selected entries were approved.'
     else:
         message = 'All selected entries were unapproved.'
-    return render_template('supvresults.html', results=results, 
+    return render_template('supv_results.html', results=results, 
         message=message, first_id=results[0]['id'], 
         last_id=results[len(results)-1]['id'])
 
@@ -319,7 +377,7 @@ def onboarding():
         conn.commit()
         cur.close()
         conn.close()
-        return render_template('confirm.html')
+        return render_template('confirm.html', hours=False)
     # The password fields are the only things that can invalidate the form
     elif request.method == 'POST' and (not form.validate_on_submit()):
         for field, errors in form.errors.items():

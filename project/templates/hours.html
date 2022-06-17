@@ -1,20 +1,21 @@
 {% extends "bootstrap/base.html" %}
-{% import "bootstrap/wtf.html" as wtf %}
 {% block content %}
 <div class="container">
-<h3 class="pt-3">Hours Submission</h3>
+<h3 class="pt-3">Employee Hub</h3>
 <hr>
-{% with errors = get_flashed_messages() %}
-	{% if errors %}
-		{% for err in errors %}
-			<div class="alert alert-danger alert-dismissible" role="alert">
-			<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">×</span></button>
-			{{ err }}
-			</div>
-		{% endfor %}
-	{% endif %}
-{% endwith %}
-{{ wtf.quick_form(form) }}
+<p>Hello {{ name }}, what would you like to do?</p>
+<form method="POST" id="HoursChoiceForm" action="{{ url_for('hub') }}">
+<div class="form-check form-check-inline">
+    <label class="form-check-label"><input class="form-check-input" type="radio" name="choice" value="submit" checked required> Submit your hours</label>
+</div>
+<div class="form-check form-check-inline">
+    <label class="form-check-label"><input class="form-check-input" type="radio" name="choice" value="view_adj" required> View/Adjust your hours</label>
+</div>
+
+<div class="form-group">
+<p class="pt-3"><input class="btn btn-primary" type="submit" value="Submit Choice"></p>
+</div>
+</form>
 <hr>
 <p><a href="{{ url_for('index') }}">Logout and return to the Main Hub</a></p>
 <hr>
