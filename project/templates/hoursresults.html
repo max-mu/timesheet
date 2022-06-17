@@ -6,7 +6,7 @@
   <hr>
   <p><strong>{{ message }}</strong></p>
 {% endif %}
-<form method="POST" id="HoursEditForm" action="{{ url_for('hours_results') }}">
+<form method="POST" id="HoursEditForm" action="{{ url_for('hours_edits') }}">
 <table class="table">
   <tr>
     <th></th>
@@ -19,7 +19,7 @@
     <th>Approval Status</th>
   </tr>
   {% for data in results %}
-    {% if first_flag==data['id'] %}
+    {% if first_id==data['id'] %}
       <tr>
         <td class="center-align"><input type="radio" class="radio" name="choice" value="{{ data['id'] }}" checked required></td>
         <td>{{ data['name'] }}</td>
@@ -30,7 +30,11 @@
         <td>{{ data['hours'] }}</td>
         <td>{{ data['approval'] }}</td>
       </tr>
+      <input type="hidden" name="first_date" value="{{ data['date'] }}">
     {% else %}
+      {% if last_id==data['id'] %}
+        <input type="hidden" name="last_date" value="{{ data['date'] }}">
+      {% endif %}
       <tr>
         <td class="center-align"><input type="radio" class="radio" name="choice" value="{{ data['id'] }}" required></td>
         <td>{{ data['name'] }}</td>
@@ -43,10 +47,10 @@
       </tr>
     {% endif %}
 {% endfor %}
-
 </table>
 
-<p>Select which entry you would like to edit. Note: your entry will need to be reapproved if edited.</p>
+<p>Select which entry you would like to edit.</p>
+<p>Note: if your entry is currently approved, it will need to be reapproved if edited.</p>
 
 <div class="form-group">
   <p><input class="btn btn-primary" type="submit" value="Submit Choice"></p>

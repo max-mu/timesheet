@@ -17,6 +17,10 @@ class HoursForm(FlaskForm):
     hours = DecimalField(label='Total Hours', validators=[InputRequired()])
     approved = HiddenField()
     submit = SubmitField(label='Submit')
+    # Next two fields are to handle restoring the 'hours search' table 
+    # in hoursresults.html, not used in initial submission
+    first_date = HiddenField()
+    last_date = HiddenField()
 
 # Login Form
 class LoginForm(FlaskForm):

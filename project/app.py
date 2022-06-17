@@ -141,7 +141,7 @@ def hours_submit():
                 flash('Error in {}: {}'.format(
                     getattr(form, field).label.text, error
                 ), 'error')
-    return render_template('hours_submit.html', form=form)
+    return render_template('hourssubmit.html', form=form)
 
 # Hours View route
 @app.route('/hourssearch', methods=['GET', 'POST'])
@@ -162,8 +162,7 @@ def hours_search():
         else:
             conn = mysql.connect()
             cur = conn.cursor(pymysql.cursors.DictCursor)
-            query = 'SELECT id, name, date, clock_in, clock_out, pto, \
-                    hours, approval FROM timesheet WHERE name = "%s" \
+            query = 'SELECT * FROM timesheet WHERE name = "%s" \
                     AND date BETWEEN "%s" AND "%s" ORDER BY date'%(
                     current_user.name, begin_conv, end_conv)
             cur.execute(query)
@@ -177,14 +176,57 @@ def hours_search():
                     double check all fields.'%(begin_str, end_str)
             else:
                 return render_template('hoursresults.html', results=results,
-                    first_flag=results[0]['id'])
+                    message='', first_id=results[0]['id'],
+                    last_id=results[len(results) - 1]['id'])
     return render_template('hourssearch.html', form=form, message=message)
 
-# Hours Adjust route
-@app.route('/hoursresults', methods=['GET', 'POST'])
+# Hours Results route, should only be redirected from hoursedits.html
+@app.route('/hoursresults', methods=['POST'])
 @login_required
 def hours_results():
-    pass
+    conn = mysql.connect()
+    cur = conn.cursor(pymysql.cursors.DictCursor)
+    id = request.form['id']
+    date = request.form['date']
+    clock_in = request.form['clock_in']
+    clock_out = request.form['clock_out']
+    pto = request.form['pto']
+    hours = request.form['hours']
+    approval = 'Not Approved'
+    first_date = request.form['first_date']
+    last_date = request.form['last_date']
+    query = 'UPDATE timesheet SET date = "%s", clock_in = "%s", \
+        clock_out = "%s", pto = "%s", hours = "%s", approval = "%s" \
+        WHERE id = "%s"'%(date, clock_in, clock_out, pto, hours, approval, id)
+    cur.execute(query)
+    conn.commit()
+    query = 'SELECT * FROM timesheet WHERE name = "%s" AND date BETWEEN \
+        "%s" AND "%s" ORDER BY date'%(current_user.name, first_date, last_date)
+    cur.execute(query)
+    results = cur.fetchall()
+    cur.close()
+    conn.close()
+    message = 'Your entry has been updated and unapproved.'
+    return render_template('hoursresults.html', results=results, message=message,
+        first_id=results[0]['id'], last_id=results[len(results) - 1]['id'])
+
+# Hours Edits route
+@app.route('/hoursedits', methods=['GET', 'POST'])
+@login_required
+def hours_edits():
+    conn = mysql.connect()
+    cur = conn.cursor(pymysql.cursors.DictCursor)
+    id = request.form['choice']
+    first_date = request.form['first_date']
+    last_date = request.form['last_date']
+    query = 'SELECT * FROM timesheet WHERE id = "%s"'%id
+    cur.execute(query)
+    result = cur.fetchone()
+    cur.close()
+    conn.close()
+    form = HoursForm()
+    return render_template('hoursedits.html', result=result, id=id,
+        first_date=first_date, last_date=last_date, form=form)
 
 # HR Hub route
 @app.route('/hr', methods=['GET', 'POST'])
@@ -208,9 +250,9 @@ def hr():
             conn = mysql.connect()
             cur = conn.cursor(pymysql.cursors.DictCursor)
             results = ()
+            # If all employees were selected
             if name == 'all':
-                query = 'SELECT id, name, date, clock_in, clock_out, pto, \
-                    hours, approval FROM timesheet WHERE date BETWEEN \
+                query = 'SELECT * FROM timesheet WHERE date BETWEEN \
                     "%s" AND "%s" ORDER BY name, date'%(begin_conv, end_conv)
                 cur.execute(query)
                 results = cur.fetchall()
@@ -221,9 +263,9 @@ def hr():
                     message = 'There were no results from %s \
                         to %s. If you were expecting results, please \
                         double check all fields.'%(begin_str, end_str)
+            # Only one employee was selected
             else:
-                query = 'SELECT id, name, date, clock_in, clock_out, pto, \
-                    hours, approval FROM timesheet WHERE name = "%s" \
+                query = 'SELECT * FROM timesheet WHERE name = "%s" \
                     AND date BETWEEN "%s" AND "%s" ORDER BY date'%(name, 
                     begin_conv, end_conv)
                 cur.execute(query)
@@ -235,6 +277,7 @@ def hr():
                     message = 'There were no results for %s from %s \
                         to %s. If you were expecting results, please \
                         double check all fields.'%(name, begin_str, end_str)
+                # No error messages
                 if message == '':
                     # Displays results in a table in a browser
                     if choice == 'browser':
@@ -270,7 +313,10 @@ def supv():
         else:
             conn = mysql.connect()
             cur = conn.cursor(pymysql.cursors.DictCursor)
+            all_flag = None
+            # If all employees for the supervisor was selected
             if name == 'all':
+                all_flag = True
                 query = 'SELECT timesheet.id, timesheet.name, date, clock_in, \
                     clock_out, pto, hours, approval, supv FROM timesheet INNER \
                     JOIN employees ON employees.name=timesheet.name WHERE supv = \
@@ -285,9 +331,10 @@ def supv():
                     message = 'There were no results from %s \
                         to %s. If you were expecting results, please \
                         double check all fields.'%(begin_str, end_str)
+            # Only one specific employee was selected
             else:
-                query = 'SELECT id, name, date, clock_in, clock_out, pto, \
-                    hours, approval FROM timesheet WHERE name = "%s" \
+                all_flag = False
+                query = 'SELECT * FROM timesheet WHERE name = "%s" \
                     AND date BETWEEN "%s" AND "%s" ORDER BY date'%(name, 
                     begin_conv, end_conv)
                 cur.execute(query)
@@ -299,10 +346,11 @@ def supv():
                     message = 'There were no results for %s from %s \
                         to %s. If you were expecting results, please \
                         double check all fields.'%(name, begin_str, end_str)
+            # If there are no error messages
             if message == '':
-                return render_template('supv_results.html', results=results,
+                return render_template('supvresults.html', results=results,
                     message=message, first_id=results[0]['id'], 
-                    last_id=results[len(results)-1]['id'])
+                    last_id=results[len(results)-1]['id'], all_flag=all_flag)
     return render_template('supv.html', form=form, message=message)
 
 # Supervisor Results route
@@ -313,47 +361,64 @@ def supv_results():
     conn = mysql.connect()
     cur = conn.cursor(pymysql.cursors.DictCursor)
     name = request.form['name']
-    date_begin = request.form['date_begin']
-    date_end = request.form['date_end']
+    first_date = request.form['first_date']
+    last_date = request.form['last_date']
+    all_flag = request.form['all_flag']
     message = ''
+    # If no records were selected
     if len(list) == 0:
-        query = 'SELECT id, name, date, clock_in, clock_out, pto, hours, \
-            approval FROM timesheet WHERE name = "%s" AND date BETWEEN \
-            "%s" AND "%s" ORDER BY name, date'%(name, date_begin, 
-            date_end)
+        if all_flag:
+            query = 'SELECT timesheet.id, timesheet.name, date, clock_in, \
+                clock_out, pto, hours, approval, supv FROM timesheet INNER \
+                JOIN employees ON employees.name=timesheet.name WHERE supv = \
+                "%s" AND date BETWEEN "%s" AND "%s" ORDER BY name, date'%(
+                current_user.name, first_date, last_date)
+        else:
+            query = 'SELECT * FROM timesheet WHERE name = "%s" AND date BETWEEN \
+                "%s" AND "%s" ORDER BY name, date'%(name, first_date,
+                last_date)
         cur.execute(query)
         results = cur.fetchall()
         message = 'You did not select any entries. Please select at least one \
             entry before proceeding.'
-        return render_template('supv_results.html', results=results, 
+        cur.close()
+        conn.close()
+        return render_template('supvresults.html', results=results, 
             message=message, first_id=results[0]['id'], 
-            last_id=results[len(results)-1]['id'])
+            last_id=results[len(results)-1]['id'], all_flag=all_flag)
     choice = request.form['choice']
+    # There was at least one record selected
     if choice == 'approve':
+        message = 'All selected entries were approved.'
         for id in list:
             query = 'UPDATE timesheet SET approval = "Approved" WHERE \
                 id = "%s"'%id
             cur.execute(query)
             conn.commit()
     else:
+        message = 'All selected entries were unapproved.'
         for id in list:
             query = 'UPDATE timesheet SET approval = "Not Approved" WHERE \
                 id = "%s"'%id
             cur.execute(query)
             conn.commit()
-    query = 'SELECT id, name, date, clock_in, clock_out, pto, hours, \
-        approval FROM timesheet WHERE name = "%s" AND date BETWEEN \
-        "%s" AND "%s" ORDER BY name, date'%(name, date_begin, 
-        date_end)
+    if request.form['all_flag']:
+        query = 'SELECT timesheet.id, timesheet.name, date, clock_in, \
+            clock_out, pto, hours, approval, supv FROM timesheet INNER \
+            JOIN employees ON employees.name=timesheet.name WHERE supv = \
+            "%s" AND date BETWEEN "%s" AND "%s" ORDER BY name, date'%(
+            current_user.name, first_date, last_date)
+    else:
+        query = 'SELECT * FROM timesheet WHERE name = "%s" AND date BETWEEN \
+            "%s" AND "%s" ORDER BY name, date'%(name, first_date, 
+            last_date)
     cur.execute(query)
     results = cur.fetchall()
-    if choice == 'approve':
-        message = 'All selected entries were approved.'
-    else:
-        message = 'All selected entries were unapproved.'
-    return render_template('supv_results.html', results=results, 
+    cur.close()
+    conn.close()
+    return render_template('supvresults.html', results=results, 
         message=message, first_id=results[0]['id'], 
-        last_id=results[len(results)-1]['id'])
+        last_id=results[len(results)-1]['id'], all_flag=all_flag)
 
 # Onboarding route
 @app.route('/onboarding', methods=['GET', 'POST'])

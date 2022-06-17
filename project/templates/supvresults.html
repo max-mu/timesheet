@@ -56,10 +56,11 @@
     </tr>
     {% if data['id']==first_id %}
       <input type="hidden" name="name" value="{{ data['name'] }}">
-      <input type="hidden" name="date_begin" value="{{ data['date'] }}">
+      <input type="hidden" name="all_flag" value="{{ all_flag }}">
+      <input type="hidden" name="first_date" value="{{ data['date'] }}">
     {% endif %}
     {% if data['id']==last_id %}
-      <input type="hidden" name="date_end" value="{{ data['date'] }}">
+      <input type="hidden" name="last_date" value="{{ data['date'] }}">
     {% endif %}
 {% endfor %}
 
