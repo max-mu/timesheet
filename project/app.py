@@ -1,4 +1,3 @@
-from urllib.robotparser import RobotFileParser
 from flask import request, render_template, redirect, url_for, flash, \
     send_file, current_app, session
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -10,8 +9,6 @@ from forms import HoursForm, LoginForm, HRSearchForm, SupvSearchForm, \
     OnboardingForm
 from flask_principal import Identity, AnonymousIdentity, Permission, \
     identity_changed, identity_loaded, RoleNeed, PermissionDenied
-from collections import namedtuple
-from functools import partial
 import pandas as pd
 import pymysql
 
@@ -19,8 +16,6 @@ be_hr = RoleNeed('hr')
 be_supv = RoleNeed('supv')
 hr_permission = Permission(be_hr)
 supv_permission = Permission(be_supv)
-app_needs = [be_hr, be_supv]
-app_permissions = [hr_permission, supv_permission]
 
 @identity_loaded.connect
 def on_identity_loaded(sender, identity):
@@ -55,52 +50,7 @@ def index():
         message = 'You have been logged out.'
     return render_template('index.html', message=message)
 
-# Hours Sumbission route
-@app.route('/hours', methods=['GET', 'POST'])
-def hours():
-    form = HoursForm()
-    message = ''
-    if request.method == 'POST' and form.validate_on_submit():
-        conn = mysql.connect()
-        cur = conn.cursor(pymysql.cursors.DictCursor)
-        email = form.email.data
-        password = form.password.data
-        query = 'SELECT name, password FROM employees \
-            WHERE email = "%s"'%email
-        cur.execute(query)
-        result = cur.fetchone()
-        if check_password_hash(result['password'], password):
-            name = result['name']
-            date = request.form['date']
-            clock_in = request.form['clock_in']
-            clock_out = request.form['clock_out']
-            pto = request.form['pto']
-            hours = request.form['hours']
-            approval = 'Not Approved'
-            query = 'INSERT INTO timesheet (name,  date, clock_in, \
-                clock_out, pto, hours, approval) VALUES ("%s", "%s", \
-                "%s", "%s", "%s", "%s", "%s")'%(name, date, clock_in, 
-                clock_out, pto, hours, approval)
-            cur.execute(query)
-            conn.commit()
-            cur.close()
-            conn.close()
-            return render_template('confirm.html')
-        else:
-            cur.close()
-            conn.close()
-            message = 'Invalid email/password.'
-    # If the user input something incorrectly, one of these errors will be printed
-    elif request.method == 'POST' and (not form.validate_on_submit()):
-        for field, errors in form.errors.items():
-            for error in errors:
-                flash('Error in {}: {}'.format(
-                    getattr(form, field).label.text, error
-                ), 'error')
-    return render_template('hours.html', form=form, message=message)
-
-
-# Login route
+# HR/Supervisor Login route
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     message = ''
@@ -111,14 +61,14 @@ def login():
         email = request.form['email']
         password = request.form['password']
         choice = request.form['choice']
-        query = 'SELECT * FROM employees WHERE email = "%s"'%email
+        query = 'SELECT password FROM employees WHERE email = "%s"'%email
         cur.execute(query)
-        results = cur.fetchone()
+        result = cur.fetchone()
         cur.close()
         conn.close()
         # Valid login, will be logged in to check permissions
-        if (results is not None and
-            check_password_hash(results['password'], password)):
+        if (result is not None and
+            check_password_hash(result['password'], password)):
             user = Employees.query.filter_by(email=email).first()
             login_user(user)
             identity_changed.send(current_app._get_current_object(),
@@ -129,9 +79,12 @@ def login():
                     with hr_permission.require():
                         return redirect( url_for('hr'))
                 # Is a supervisor
-                else:
+                elif choice == 'supv':
                     with supv_permission.require():
                         return redirect( url_for('supv'))
+                # Logging in to submit/adjust hours
+                else:
+                    return redirect( url_for('hours'))
             # Unauthorized, will be logged out and returned to login screen
             except PermissionDenied:
                 message = 'You are not authorized to login in as your \
@@ -144,6 +97,39 @@ def login():
         else:
             message = 'Invalid email/password.'
     return render_template('login.html', form=form, message=message)
+
+# Hours Sumbission route
+@app.route('/hours', methods=['GET', 'POST'])
+@login_required
+def hours():
+    form = HoursForm()
+    if request.method == 'POST' and form.validate_on_submit():
+        conn = mysql.connect()
+        cur = conn.cursor(pymysql.cursors.DictCursor)
+        name = current_user.name
+        date = request.form['date']
+        clock_in = request.form['clock_in']
+        clock_out = request.form['clock_out']
+        pto = request.form['pto']
+        hours = request.form['hours']
+        approval = 'Not Approved'
+        query = 'INSERT INTO timesheet (name,  date, clock_in, \
+            clock_out, pto, hours, approval) VALUES ("%s", "%s", \
+            "%s", "%s", "%s", "%s", "%s")'%(name, date, clock_in, 
+            clock_out, pto, hours, approval)
+        cur.execute(query)
+        conn.commit()
+        cur.close()
+        conn.close()
+        return render_template('confirm.html')
+    # If the user input something incorrectly, one of these errors will be printed
+    elif request.method == 'POST' and (not form.validate_on_submit()):
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash('Error in {}: {}'.format(
+                    getattr(form, field).label.text, error
+                ), 'error')
+    return render_template('hours.html', form=form)
 
 # HR Hub route
 @app.route('/hr', methods=['GET', 'POST'])

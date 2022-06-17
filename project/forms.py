@@ -8,8 +8,6 @@ import pymysql
 # Hours Submission Form
 class HoursForm(FlaskForm):
     id = HiddenField()
-    email = StringField(label='Email Address', validators=[InputRequired()])
-    password = PasswordField(label='Password', validators=[InputRequired()])
     date = DateField(label='Date', 
         validators=[InputRequired()], format='%Y-%m-%d')
     clock_in = StringField(label='Clock In', validators=[InputRequired()])
@@ -25,7 +23,8 @@ class LoginForm(FlaskForm):
     email = StringField(label='Email Address', validators=[InputRequired()])
     password = PasswordField(label='Password', validators=[InputRequired()])
     choice = RadioField(validators=[InputRequired()], 
-        choices=[('supv', 'Supervisor'), ('hr', 'HR')], default='supv')
+        choices=[('hours', 'Submit/Adjust hours'), 
+        ('supv', 'Login as supervisor'), ('hr', 'Login as HR')], default='hours')
     login = SubmitField(label='Login')
 
 # Generates the list of names of employees for FetchForm
