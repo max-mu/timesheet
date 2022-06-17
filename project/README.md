@@ -12,3 +12,4 @@ sudo apt-get install mysql-server
 sudo apt-get install libmysqlclient-dev
 pip install flask-mysql
 pip install pandas
+pip install flask_principal

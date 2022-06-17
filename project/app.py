@@ -1,25 +1,58 @@
-from flask import request, render_template, redirect, url_for, flash, send_file
+from urllib.robotparser import RobotFileParser
+from flask import request, render_template, redirect, url_for, flash, \
+    send_file, current_app, session
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import login_user, login_required, logout_user, current_user
 from datetime import datetime
 from __init__ import app, mysql
 from models import Employees
-from forms import HoursForm, LoginForm, HRSearchForm, SupvSearchForm, OnboardingForm
+from forms import HoursForm, LoginForm, HRSearchForm, SupvSearchForm, \
+    OnboardingForm
+from flask_principal import Identity, AnonymousIdentity, Permission, \
+    identity_changed, identity_loaded, RoleNeed, PermissionDenied
+from collections import namedtuple
+from functools import partial
 import pandas as pd
 import pymysql
+
+be_hr = RoleNeed('hr')
+be_supv = RoleNeed('supv')
+hr_permission = Permission(be_hr)
+supv_permission = Permission(be_supv)
+app_needs = [be_hr, be_supv]
+app_permissions = [hr_permission, supv_permission]
+
+@identity_loaded.connect
+def on_identity_loaded(sender, identity):
+    if identity.id is not None:
+        needs = []
+        conn = mysql.connect()
+        cur = conn.cursor()
+        query = 'SELECT roles FROM employees WHERE id = "%s"'%identity.id
+        cur.execute(query)
+        role = cur.fetchone()
+        if role[0] == 'hr':
+            needs.append(be_hr)
+        elif role[0] == 'supv':
+            needs.append(be_supv)
+        cur.close()
+        conn.close()
+        for n in needs:
+            identity.provides.add(n)
 
 # Default route
 @app.route('/')
 def index():
-    logout_user() # If the user returns from an error, they will be logged out
-    return render_template('index.html', message='')
-
-# Logout route
-@app.route('/logout')
-@login_required
-def logout():
-    logout_user()
-    message = 'You have been logged out.'
+    message = ''
+    # If the user returned from an error, they will be logged out if they were
+    # logged in.
+    if current_user.is_authenticated:
+        logout_user()
+        for key in ('identity.name', 'identity.auth_type'):
+            session.pop(key, None)
+        identity_changed.send(current_app._get_current_object(),
+            identity=AnonymousIdentity())
+        message = 'You have been logged out.'
     return render_template('index.html', message=message)
 
 # Hours Sumbission route
@@ -83,23 +116,30 @@ def login():
         results = cur.fetchone()
         cur.close()
         conn.close()
-        # Valid login
+        # Valid login, will be logged in to check permissions
         if (results is not None and
             check_password_hash(results['password'], password)):
-            # In HR
             user = Employees.query.filter_by(email=email).first()
-            if results['is_hr'] == 1 and choice == 'hr':
-                login_user(user)
-                return redirect( url_for('hr'))
-            # Is a supervisor
-            elif results['is_supv'] == 1 and choice == 'supv':
-                login_user(user)
-                return redirect( url_for('supv'))
-            # Unauthorized
-            else: 
+            login_user(user)
+            identity_changed.send(current_app._get_current_object(),
+                    identity=Identity(user.id))
+            try:
+                # In HR
+                if choice == 'hr':
+                    with hr_permission.require():
+                        return redirect( url_for('hr'))
+                # Is a supervisor
+                else:
+                    with supv_permission.require():
+                        return redirect( url_for('supv'))
+            # Unauthorized, will be logged out and returned to login screen
+            except PermissionDenied:
                 message = 'You are not authorized to login in as your \
                     selection. If you meant to submit your hours, go \
                     back to the main hub and click on the correct link.'
+            logout_user()
+            identity_changed.send(current_app._get_current_object(),
+                identity=AnonymousIdentity())
         # Invalid login
         else:
             message = 'Invalid email/password.'
@@ -107,7 +147,7 @@ def login():
 
 # HR Hub route
 @app.route('/hr', methods=['GET', 'POST'])
-@login_required
+@hr_permission.require()
 def hr():
     message = ''
     form = HRSearchForm()
@@ -169,6 +209,7 @@ def hr():
 
 # Supervisor Hub route
 @app.route('/supv', methods=['GET', 'POST'])
+@supv_permission.require()
 @login_required
 def supv():
     message = ''
@@ -222,7 +263,7 @@ def supv():
 
 # Supervisor Results route
 @app.route('/supvresults', methods=['POST'])
-@login_required
+@supv_permission.require()
 def supvresults():
     list = request.form.getlist('selection')
     conn = mysql.connect()
@@ -282,13 +323,12 @@ def onboarding():
         password = generate_password_hash(request.form['password'])
         address = request.form['address']
         phone = request.form['phone']
-        is_hr = request.form['is_hr']
         supv = request.form['supv']
-        is_supv = request.form['is_supv']
+        roles = request.form['roles']
         query = 'INSERT INTO employees (name, email, password, \
-            address, phone, is_hr, supv, is_supv) VALUES \
-            ("%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s")'%(name, 
-            email,  password, address, phone, is_hr, supv, is_supv)
+            address, phone, supv, roles) VALUES \
+            ("%s", "%s", "%s", "%s", "%s", "%s", "%s")'%(name, 
+            email,  password, address, phone, supv, roles)
         cur.execute(query)
         conn.commit()
         cur.close()
@@ -306,23 +346,27 @@ def onboarding():
 # Error routes
 @app.errorhandler(401)
 def unauthorized(e):
-    return render_template('error.html', 
-        pageheading="Unauthorized (Error 401)", error=e)
+    return render_template('error.html', error=e, 
+        pageheading="Unauthorized (Error 401)", 
+        logged_in=current_user.is_authenticated)
 
 @app.errorhandler(404)
 def page_not_found(e):
-    return render_template('error.html', 
-        pageheading="Page not found (Error 404)", error=e)
+    return render_template('error.html', error=e,
+        pageheading="Page not found (Error 404)", 
+        logged_in=current_user.is_authenticated)
 
 @app.errorhandler(405)
 def form_not_posted(e):
-    return render_template('error.html', 
-        pageheading="The form was not submitted (Error 405)", error=e)
+    return render_template('error.html', error=e,
+        pageheading="The form was not submitted (Error 405)", 
+        logged_in=current_user.is_authenticated)
 
 @app.errorhandler(500)
 def internal_server_error(e):
-    return render_template('error.html', 
-        pageheading="Internal server error (500)", error=e)
+    return render_template('error.html', error=e,
+        pageheading="Internal server error (500)",
+        logged_in=current_user.is_authenticated)
 
 if __name__ == '__main__':
     app.run()

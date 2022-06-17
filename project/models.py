@@ -10,20 +10,18 @@ class Employees(db.Model, UserMixin):
     password = db.Column(db.String)
     address = db.Column(db.String)
     phone = db.Column(db.String)
-    is_hr = db.Column(db.Integer) # 0 for not in HR, 1 for in HR
     supv = db.Column(db.String)
-    is_supv = db.Column(db.Integer) # 0 for not a supervisor, 1 for supervisor
+    roles = db.Column(db.String)
 
     def __init__(self, name, email, password, 
-        address, phone, is_hr, supv, is_supv, is_active):
+        address, phone, supv, roles):
         self.name = name
         self.email = email
         self.password = password
         self.address = address
         self.phone = phone
-        self.is_hr = is_hr
         self.supv = supv
-        self.is_supv = is_supv
+        self.roles = roles
     
     def get_id(self):
         return self.id
