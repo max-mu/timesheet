@@ -1,15 +1,15 @@
-from flask import request, render_template, redirect, stream_with_context, \
-    url_for, flash, current_app, session
-from werkzeug.security import generate_password_hash, check_password_hash
-from werkzeug.wrappers import Response
-from flask_login import login_user, login_required, logout_user, current_user
-from datetime import datetime
-from __init__ import app, mysql
-from models import Employees
-from forms import HoursForm, LoginForm, HRSearchForm, SupvSearchForm, \
-    OnboardingForm, EmploySearchForm
+from flask import request, render_template, redirect, url_for, flash, \
+    current_app, session
 from flask_principal import Identity, AnonymousIdentity, Permission, \
     identity_changed, identity_loaded, RoleNeed, PermissionDenied
+from flask_login import login_user, login_required, logout_user, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.wrappers import Response
+from __init__ import app, mysql
+from forms import HoursForm, LoginForm, HRSearchForm, SupvSearchForm, \
+    OnboardingForm, EmploySearchForm
+from models import Employees
+from datetime import datetime
 from io import StringIO
 import csv
 import pymysql
