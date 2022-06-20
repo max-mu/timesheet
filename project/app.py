@@ -115,7 +115,7 @@ def hours():
     return render_template('hours.html', name=current_user.name)
 
 # Hours Sumbission route
-@app.route('/hourssubmit', methods=['GET', 'POST'])
+@app.route('/hours-submit', methods=['GET', 'POST'])
 @login_required
 def hours_submit():
     form = HoursForm()
@@ -138,10 +138,10 @@ def hours_submit():
         cur.close()
         conn.close()
         return render_template('confirm.html', hours=True)
-    return render_template('hourssubmit.html', form=form)
+    return render_template('hours-submit.html', form=form)
 
 # Hours View route
-@app.route('/hourssearch', methods=['GET', 'POST'])
+@app.route('/hours-search', methods=['GET', 'POST'])
 @login_required
 def hours_search():
     message = ''
@@ -172,16 +172,16 @@ def hours_search():
                     to %s. If you were expecting results, please \
                     double check all fields.'%(begin_str, end_str)
             else:
-                return render_template('hoursresults.html', results=results,
+                return render_template('hours-results.html', results=results,
                     message='', first_id=results[0]['id'],
                     last_id=results[len(results) - 1]['id'])
-    return render_template('hourssearch.html', form=form, message=message)
+    return render_template('hours-search.html', form=form, message=message)
 
-# Adjust Hours route, should only be redirected from edits.html
+# Adjust Hours route, should only be redirected from hours-adjust.html
 # Used for employee and supervisor adjustment forms
-@app.route('/adjusthours', methods=['POST'])
+@app.route('/hours-adjust', methods=['POST'])
 @login_required
-def adjust_hours():
+def hours_adjust():
     conn = mysql.connect()
     cur = conn.cursor(pymysql.cursors.DictCursor)
     id = request.form['id']
@@ -216,17 +216,17 @@ def adjust_hours():
     message = 'The entry has been updated and unapproved.'
     # Gets redirected to employee search results
     if type == 'employ':
-        return render_template('hoursresults.html', results=results, 
+        return render_template('hours-results.html', results=results, 
             message=message, first_id=results[0]['id'], 
             last_id=results[len(results) - 1]['id'])
     # Redirected to supverisor search results, only one employee searched
     elif type == 'supv':
-        return render_template('supvresults.html', results=results, 
+        return render_template('supv-results.html', results=results, 
             message=message, first_id=results[0]['id'], 
             last_id=results[len(results) - 1]['id'], all_flag=False)
     # Redirected to supverisor search results, all employees searched
     else:
-        return render_template('supvresults.html', results=results, 
+        return render_template('supv-results.html', results=results, 
             message=message, first_id=results[0]['id'], 
             last_id=results[len(results) - 1]['id'], all_flag=True)
 
@@ -248,7 +248,7 @@ def edit_or_remove():
         cur.close()
         conn.close()
         form = HoursForm()
-        return render_template('edits.html', result=result, name=current_user.name,
+        return render_template('hours-adjust.html', result=result, name=current_user.name,
             id=id,first_date=first_date, last_date=last_date, form=form, 
             type='employ')
     # Action was delete
@@ -264,7 +264,7 @@ def edit_or_remove():
         cur.close()
         conn.close()
         message = 'The entry has been deleted.'
-        return render_template('hoursresults.html', results=results, 
+        return render_template('hours-results.html', results=results, 
             message=message, first_id=results[0]['id'], 
             last_id=results[len(results) - 1]['id'])
 
@@ -386,12 +386,14 @@ def hr():
             if message == '':
                 # Displays results in a table in a browser
                 if choice == 'browser':
-                    return render_template('hrresults.html', results=results)
+                    return render_template('hr-results.html', results=results)
                 # Exports results in a CSV
                 else:
                     return generate_csv(results, name, begin_str, end_str)
     return render_template('hr.html', form=form, message=message)
 
+# Employee Info Editing route
+@app.route('/')
 # Supervisor Hub route
 @app.route('/supv', methods=['GET', 'POST'])
 @supv_permission.require()
@@ -448,13 +450,13 @@ def supv():
                         double check all fields.'%(name, begin_str, end_str)
             # If there are no error messages
             if message == '':
-                return render_template('supvresults.html', results=results,
+                return render_template('supv-results.html', results=results,
                     message=message, first_id=results[0]['id'], 
                     last_id=results[len(results)-1]['id'], all_flag=all_flag)
     return render_template('supv.html', form=form, message=message)
 
 # Supervisor Results route
-@app.route('/supvresults', methods=['POST'])
+@app.route('/supv-results', methods=['POST'])
 @supv_permission.require()
 def supv_results():
     list = request.form.getlist('selection')
@@ -484,7 +486,7 @@ def supv_results():
             entry before proceeding.'
         cur.close()
         conn.close()
-        return render_template('supvresults.html', results=results, 
+        return render_template('supv-results.html', results=results, 
             message=message, first_id=results[0]['id'], 
             last_id=results[len(results)-1]['id'], all_flag=all_flag)
     choice = request.form['choice']
@@ -502,11 +504,11 @@ def supv_results():
             conn.close()
             form = HoursForm()
             if all_flag:
-                return render_template('edits.html', result=result, name=name,
+                return render_template('hours-adjust.html', result=result, name=name,
                     id=id, first_date=first_date, last_date=last_date, 
                     form=form, type='supv_all')
             else:
-                return render_template('edits.html', result=result, name=name,
+                return render_template('hours-adjust.html', result=result, name=name,
                     id=id, first_date=first_date, last_date=last_date, 
                     form=form, type='supv')
     # Delete
@@ -536,7 +538,7 @@ def supv_results():
     results = cur.fetchall()
     cur.close()
     conn.close()
-    return render_template('supvresults.html', results=results, 
+    return render_template('supv-results.html', results=results, 
         message=message, first_id=results[0]['id'], 
         last_id=results[len(results)-1]['id'], all_flag=all_flag)
 

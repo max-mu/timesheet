@@ -19,7 +19,7 @@ class HoursForm(FlaskForm):
     approved = HiddenField()
     submit = SubmitField(label='Submit')
     # Next two fields are to handle restoring the 'hours search' table 
-    # in hoursresults.html, not used in initial submission
+    # in hours-results.html, not used in initial submission
     first_date = HiddenField()
     last_date = HiddenField()
     # Next field is to hold if user came from employee or supv search, not
