@@ -1,15 +1,10 @@
-Python 3
-
 Package Installations:
-pip install flask
-pip install wheel
-pip install flask_bootstrap4
-pip install flask_wtf
-pip install flask_sqlalchemy
-pip install flask_login
-pip install pymysql
-sudo apt-get install mysql-server
-sudo apt-get install libmysqlclient-dev
-pip install flask-mysql
-pip install pandas
-pip install flask_principal
+- pip install flask
+- pip install wheel
+- pip install flask_bootstrap4
+- pip install flask_wtf
+- pip install flask_sqlalchemy
+- pip install flask_login
+- pip install pymysql
+- pip install flask-mysql
+- pip install flask_principal
