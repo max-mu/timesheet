@@ -1,6 +1,7 @@
-from flask import request, render_template, redirect, url_for, flash, \
-    send_file, current_app, session
+from flask import request, render_template, redirect, stream_with_context, \
+    url_for, flash, current_app, session
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.wrappers import Response
 from flask_login import login_user, login_required, logout_user, current_user
 from datetime import datetime
 from __init__ import app, mysql
@@ -9,14 +10,17 @@ from forms import HoursForm, LoginForm, HRSearchForm, SupvSearchForm, \
     OnboardingForm, EmploySearchForm
 from flask_principal import Identity, AnonymousIdentity, Permission, \
     identity_changed, identity_loaded, RoleNeed, PermissionDenied
-import pandas as pd
+from io import StringIO
+import csv
 import pymysql
 
+# Flask-Principal Roles and Permissions
 be_hr = RoleNeed('hr')
 be_supv = RoleNeed('supv')
 hr_permission = Permission(be_hr)
 supv_permission = Permission(be_supv)
 
+# When user logs in, any roles that are associated with the login is given
 @identity_loaded.connect
 def on_identity_loaded(sender, identity):
     if identity.id is not None:
@@ -39,8 +43,7 @@ def on_identity_loaded(sender, identity):
 @app.route('/')
 def index():
     message = ''
-    # If the user returned from an error, they will be logged out if they were
-    # logged in.
+    # If the user was logged in when returning, they will be logged out
     if current_user.is_authenticated:
         logout_user()
         for key in ('identity.name', 'identity.auth_type'):
@@ -66,9 +69,10 @@ def login():
         result = cur.fetchone()
         cur.close()
         conn.close()
+        not_none = result is not None
+        check_pass = check_password_hash(result['password'], password)
         # Valid login, will be logged in to check permissions
-        if (result is not None and
-            check_password_hash(result['password'], password)):
+        if not_none and check_pass:
             user = Employees.query.filter_by(email=email).first()
             login_user(user)
             identity_changed.send(current_app._get_current_object(),
@@ -180,10 +184,11 @@ def hours_search():
                     last_id=results[len(results) - 1]['id'])
     return render_template('hourssearch.html', form=form, message=message)
 
-# Hours Results route, should only be redirected from edits.html
-@app.route('/hoursresults', methods=['POST'])
+# Adjust Hours route, should only be redirected from edits.html
+# Used for employee and supervisor adjustment forms
+@app.route('/adjusthours', methods=['POST'])
 @login_required
-def hours_results():
+def adjust_hours():
     conn = mysql.connect()
     cur = conn.cursor(pymysql.cursors.DictCursor)
     id = request.form['id']
@@ -232,10 +237,10 @@ def hours_results():
             message=message, first_id=results[0]['id'], 
             last_id=results[len(results) - 1]['id'], all_flag=True)
 
-# Hours Edits route
-@app.route('/hoursedits', methods=['GET', 'POST'])
+# Hours Edit or Remove route
+@app.route('/editorremove', methods=['GET', 'POST'])
 @login_required
-def hours_edits():
+def edit_or_remove():
     conn = mysql.connect()
     cur = conn.cursor(pymysql.cursors.DictCursor)
     choice = request.form['choice']
@@ -270,6 +275,71 @@ def hours_edits():
             message=message, first_id=results[0]['id'], 
             last_id=results[len(results) - 1]['id'])
 
+# Generates the CSV for HR
+def generate_csv(results, name, begin_str, end_str):
+    def generate():
+        data = StringIO()
+        w = csv.writer(data)
+        cur_name = None
+        total_hours = 0
+        all_approved = True
+        # Header
+        w.writerow(('name', 'date', 'clock_in', 'clock_out', 
+            'pto', 'hours', 'approval', 'total_hours', 'all_approved'))
+        yield data.getvalue()
+        data.seek(0)
+        data.truncate(0)
+        # Data
+        for record in results:
+            # Same employee as the last write in
+            if record['name'] == cur_name:
+                total_hours += record['hours']
+                rec_approve = record['approval']
+                all_approved = all_approved and rec_approve
+                w.writerow((record['name'], record['date'],
+                    record['clock_in'], record['clock_out'], 
+                    record['pto'], record['hours'], 
+                    record['approval']))
+                yield data.getvalue()
+                data.seek(0)
+                data.truncate(0)
+            # Different employee
+            else:
+                # Not the first entry, creates the summary for the last employee
+                if cur_name != None:
+                    if all_approved:
+                        w.writerow(('', '', '', '', '', '', '', total_hours,
+                            'Approved'))
+                    else:
+                        w.writerow(('', '', '', '', '', '', '', total_hours,
+                            'Not Approved'))
+                    yield data.getvalue()
+                    data.seek(0)
+                    data.truncate(0)
+                # Prepares for the next employee, writes in first entry for
+                # the employee
+                cur_name = record['name']
+                total_hours = record['hours']
+                all_approved = record['approval'] == 'Approved'
+                w.writerow((record['name'], record['date'],
+                    record['clock_in'], record['clock_out'], 
+                    record['pto'], record['hours'], 
+                    record['approval']))
+                yield data.getvalue()
+                data.seek(0)
+                data.truncate(0)
+        # Write in the last employee's summary
+        w.writerow(('', '', '', '', '', '', '', total_hours,
+            all_approved))
+        yield data.getvalue()
+        data.seek(0)
+        data.truncate(0)
+    response = Response(generate(), mimetype='text/csv')
+    response.headers.set('Content-Disposition', 'attachment', 
+        filename='"%s"_"%s"_"%s".csv'%(name, begin_str,
+        end_str))
+    return response
+
 # HR Hub route
 @app.route('/hr', methods=['GET', 'POST'])
 @hr_permission.require()
@@ -293,7 +363,6 @@ def hr():
             cur = conn.cursor(pymysql.cursors.DictCursor)
             results = ()
             # If all employees were selected
-            print('test')
             if name == 'all':
                 query = 'SELECT * FROM timesheet WHERE date BETWEEN \
                     "%s" AND "%s" ORDER BY name, date'%(begin_conv, end_conv)
@@ -327,12 +396,7 @@ def hr():
                     return render_template('hrresults.html', results=results)
                 # Exports results in a CSV
                 else:
-                    conn = mysql.connect()
-                    csv_results = pd.read_sql_query(query, conn)
-                    df = pd.DataFrame(csv_results)
-                    df.to_csv(r'results.csv', index=False)
-                    conn.close()
-                    return send_file('results.csv', as_attachment=True)
+                    return generate_csv(results, name, begin_str, end_str)
     return render_template('hr.html', form=form, message=message)
 
 # Supervisor Hub route
@@ -458,30 +522,23 @@ def supv_results():
             query = 'DELETE FROM timesheet WHERE id = "%s"'%id
             cur.execute(query)
             conn.commit()
-        cur.execute(last_query)
-        results = cur.fetchall()
-        cur.close()
-        conn.close()
         message = 'The entry has been deleted.'
-        return render_template('supvresults.html', results=results, 
-            message=message, first_id=results[0]['id'], 
-            last_id=results[len(results) - 1]['id'], all_flag=all_flag)
     # Approve
     elif choice == 'approve':
-        message = 'All selected entries were approved.'
         for id in list:
             query = 'UPDATE timesheet SET approval = "Approved" WHERE \
                 id = "%s"'%id
             cur.execute(query)
             conn.commit()
+        message = 'All selected entries were approved.'
     # Unappove
     else:
-        message = 'All selected entries were unapproved.'
         for id in list:
             query = 'UPDATE timesheet SET approval = "Not Approved" WHERE \
                 id = "%s"'%id
             cur.execute(query)
             conn.commit()
+        message = 'All selected entries were unapproved.'
     cur.execute(last_query)
     results = cur.fetchall()
     cur.close()

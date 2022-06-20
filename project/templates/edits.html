@@ -4,7 +4,7 @@
 <div class="container">
 <h3 class="pt-3">Hours Adjustment</h3>
 <hr>
-<form method="POST" id="EmployHoursForm" action="{{ url_for('hours_results') }}">
+<form method="POST" id="EmployHoursForm" action="{{ url_for('adjust_hours') }}">
   {{ form.csrf_token }}
   <input type="hidden" name="id" value="{{ id }}">
   <input type="hidden" name="name" value="{{ name }}">
