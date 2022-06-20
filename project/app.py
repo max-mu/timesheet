@@ -293,6 +293,7 @@ def hr():
             cur = conn.cursor(pymysql.cursors.DictCursor)
             results = ()
             # If all employees were selected
+            print('test')
             if name == 'all':
                 query = 'SELECT * FROM timesheet WHERE date BETWEEN \
                     "%s" AND "%s" ORDER BY name, date'%(begin_conv, end_conv)
@@ -319,19 +320,19 @@ def hr():
                     message = 'There were no results for %s from %s \
                         to %s. If you were expecting results, please \
                         double check all fields.'%(name, begin_str, end_str)
-                # No error messages
-                if message == '':
-                    # Displays results in a table in a browser
-                    if choice == 'browser':
-                        return render_template('hrresults.html', results=results)
-                    # Exports results in a CSV
-                    else:
-                        conn = mysql.connect()
-                        csv_results = pd.read_sql_query(query, conn)
-                        df = pd.DataFrame(csv_results)
-                        df.to_csv(r'results.csv', index=False)
-                        conn.close()
-                        return send_file('results.csv', as_attachment=True)
+            # No error messages
+            if message == '':
+                # Displays results in a table in a browser
+                if choice == 'browser':
+                    return render_template('hrresults.html', results=results)
+                # Exports results in a CSV
+                else:
+                    conn = mysql.connect()
+                    csv_results = pd.read_sql_query(query, conn)
+                    df = pd.DataFrame(csv_results)
+                    df.to_csv(r'results.csv', index=False)
+                    conn.close()
+                    return send_file('results.csv', as_attachment=True)
     return render_template('hr.html', form=form, message=message)
 
 # Supervisor Hub route
@@ -434,8 +435,7 @@ def supv_results():
     if choice == 'edit':
         # Checks to see if there is more than one entry selected
         if len(list) > 1:
-            message = 'You can only edit one entry at a time. Please only \
-                select one entry.'
+            message = 'You can only edit one entry at a time.'
         else:
             id = list[0]
             query = 'SELECT * FROM timesheet WHERE id = "%s"'%id
