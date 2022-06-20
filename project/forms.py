@@ -30,10 +30,6 @@ class HoursForm(FlaskForm):
 class LoginForm(FlaskForm):
     email = StringField(label='Email Address', validators=[InputRequired()])
     password = PasswordField(label='Password', validators=[InputRequired()])
-    choice = RadioField(validators=[InputRequired()], 
-        choices=[('hours', 'Submit/Adjust your hours'), 
-        ('supv', 'Login as supervisor'), 
-        ('hr', 'Login as HR')], default='hours')
     login = SubmitField(label='Login')
 
 # Generates the list of names of employees for FetchForm
@@ -53,28 +49,37 @@ def get_name_choices(type, supv):
         choices.append((data['name'], data['name']))
     return choices
 
-# HR Search Form
-class EmploySearchForm(FlaskForm):
+# HR Hours Search Form
+class EmployHoursForm(FlaskForm):
     date_begin = DateField(label='First date you want your search to contain', 
         validators=[InputRequired()], format='%Y-%m-%d')
     date_end = DateField(label='Last date you want your search to contain', 
         validators=[InputRequired()], format='%Y-%m-%d')
     submit = SubmitField(label='Submit')
 
-# HR Search Form
-class HRSearchForm(FlaskForm):
+# HR Hours Search Form
+class HRGeneralForm(FlaskForm):
     name = SelectField(label='Name of the employee', 
         validators=[InputRequired()], choices=get_name_choices('hr', None))
     date_begin = DateField(label='First date you want your search to contain', 
-        validators=[InputRequired()], format='%Y-%m-%d')
+        format='%Y-%m-%d')
     date_end = DateField(label='Last date you want your search to contain', 
-        validators=[InputRequired()], format='%Y-%m-%d')
-    choice = RadioField(validators=[InputRequired()], 
-        choices=[('csv', 'CSV'), ('browser', 'Browser')], default='csv')
+        format='%Y-%m-%d')
     submit = SubmitField(label='Submit')
 
-# Supervisor Fetch Form
-class SupvSearchForm(FlaskForm):
+# HR Employees Form
+class HREmployeeForm(FlaskForm):
+    name = StringField(label='Name', validators=[InputRequired()])
+    email = StringField(label='Email', validators=[InputRequired()])
+    address = StringField(label='Address', validators=[InputRequired()])
+    phone = StringField(label='Phone Number', validators=[InputRequired()])
+    supv = StringField(label='Supervisor Name (leave blank if none)')
+    roles = SelectField(label='Roles (leave blank if none)', 
+        choices=[('', ''), ('hr', 'HR'), ('supv', 'Supervisor')])
+    submit = SubmitField(label='Submit')
+
+# Supervisor Hours Search Form
+class SupvHoursForm(FlaskForm):
     name = SelectField(label='Name of the employee', 
         validators=[InputRequired()], choices=[])
     date_begin = DateField(label='First date you want your search to contain', 
@@ -84,7 +89,7 @@ class SupvSearchForm(FlaskForm):
     submit = SubmitField(label='Submit')
 
     def __init__(self, supv):
-        super(SupvSearchForm, self).__init__()
+        super(SupvHoursForm, self).__init__()
         self.name.choices = get_name_choices('supv', supv)
 
 

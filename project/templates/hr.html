@@ -8,9 +8,22 @@
   <form method="POST" id="search" action="{{ url_for('hr') }}">
     {{ form.csrf_token }}
     {{ wtf.form_field(form.name) }}
+    <div class="form-check form-check-inline">
+      <label class="form-check-label"><input class="form-check-input" type="radio" name="search_edit" value="search" checked> Search the timesheet</label>
+    </div>
+    <div class="form-check form-check-inline">
+      <label class="form-check-label"><input class="form-check-input" type="radio" name="search_edit" value="edit"> View/Edit/Delete an employee's information (can only select one employee)</label>
+    </div>
+    <hr>
+    <p class="pt-1">If you are searching the timesheet, the rest of this form must be filled out.</p>
     {{ wtf.form_field(form.date_begin) }}
     {{ wtf.form_field(form.date_end) }}
-    {{ wtf.form_field(form.choice) }}
+    <div class="form-check form-check-inline">
+      <label class="form-check-label"><input class="form-check-input" type="radio" name="export_choice" value="csv" checked> Download as CSV</label>
+    </div>
+    <div class="form-check form-check-inline">
+      <label class="form-check-label"><input class="form-check-input" type="radio" name="export_choice" value="browser" > View in Browser</label>
+    </div>
     <p class="pt-1"></p>
     {{ wtf.form_field(form.submit) }}
   </form>

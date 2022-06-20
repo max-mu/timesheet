@@ -9,7 +9,15 @@
   {{ form.csrf_token }}
   {{ wtf.form_field(form.email) }}
   {{ wtf.form_field(form.password) }}
-  {{ wtf.form_field(form.choice) }}
+  <div class="form-check form-check-inline">
+    <label class="form-check-label"><input class="form-check-input" type="radio" name="choice" value="hours" checked> Submit/Adjust your hours</label>
+  </div>
+  <div class="form-check form-check-inline">
+    <label class="form-check-label"><input class="form-check-input" type="radio" name="choice" value="supv"> Login as a supervisor</label>
+  </div>
+  <div class="form-check form-check-inline">
+    <label class="form-check-label"><input class="form-check-input" type="radio" name="choice" value="hr"> Login as HR</label>
+  </div>
   <p class="pt-1"></p>
   {{ wtf.form_field(form.login) }}
 </form>

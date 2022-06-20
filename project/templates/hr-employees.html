@@ -1,0 +1,29 @@
+{% extends "bootstrap/base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+{% block content %}
+<div class="container">
+<h3 class="pt-3">Employee Information Adjustment</h3>
+<hr>
+<form method="POST" id="EmployHoursForm" action="{{ url_for('hours_adjust') }}">
+  {{ form.csrf_token }}
+  <input type="hidden" name="id" value="{{ id }}">
+  {{ wtf.form_field(form.name, value=result['name']) }}
+  {{ wtf.form_field(form.email, value=result['email']) }}
+  {{ wtf.form_field(form.phone, value=result['phone']) }}
+  {{ wtf.form_field(form.supv, value=result['supv']) }}
+  {{ wtf.form_field(form.roles, value=result['roles']) }}
+  <div class="form-check form-check-inline">
+    <label class="form-check-label"><input class="form-check-input" type="radio" name="choice" value="edit" checked> Edit with these changes</label>
+  </div>
+  <div class="form-check form-check-inline">
+    <label class="form-check-label"><input class="form-check-input" type="radio" name="choice" value="delete" > Delete</label>
+  </div>
+  <p class="pt-1"></p>
+  {{ wtf.form_field(form.submit) }}
+</form>
+<hr>
+<p><a href="{{ url_for('hr') }}">Go back to the HR Hub</a></p>
+<p><a href="{{ url_for('index') }}">Logout and return to the Main Hub</a></p>
+<hr>
+</div>
+{% endblock %}
