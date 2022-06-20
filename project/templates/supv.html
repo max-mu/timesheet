@@ -4,14 +4,14 @@
 <div class="container">
 <h3 class="pt-3">Supervisor Hub</h3>
 <hr>
-  <p><strong>{{ message }}</strong></p>
-  <form method="POST" id="search" action="{{ url_for('supv') }}">
-    {{ form.csrf_token }}
-    {{ wtf.form_field(form.name) }}
-    {{ wtf.form_field(form.date_begin) }}
-    {{ wtf.form_field(form.date_end) }}
-    {{ wtf.form_field(form.submit) }}
-  </form>
+<p><strong>{{ message }}</strong></p>
+<form method="POST" id="search" action="{{ url_for('supv') }}">
+  {{ form.csrf_token }}
+  {{ wtf.form_field(form.name) }}
+  {{ wtf.form_field(form.date_begin) }}
+  {{ wtf.form_field(form.date_end) }}
+  {{ wtf.form_field(form.submit) }}
+</form>
 <hr>
 <p><a href="{{ url_for('index') }}">Logout and return to the Main Hub</a></p>
 <hr>

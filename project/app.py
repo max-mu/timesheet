@@ -1,5 +1,5 @@
-from flask import request, render_template, redirect, url_for, flash, \
-    current_app, session
+from flask import request, render_template, redirect, url_for, current_app, \
+    session
 from flask_principal import Identity, AnonymousIdentity, Permission, \
     identity_changed, identity_loaded, RoleNeed, PermissionDenied
 from flask_login import login_user, login_required, logout_user, current_user
@@ -138,13 +138,6 @@ def hours_submit():
         cur.close()
         conn.close()
         return render_template('confirm.html', hours=True)
-    # If the user input something incorrectly, one of these errors will be printed
-    elif request.method == 'POST' and (not form.validate_on_submit()):
-        for field, errors in form.errors.items():
-            for error in errors:
-                flash('Error in {}: {}'.format(
-                    getattr(form, field).label.text, error
-                ), 'error')
     return render_template('hourssubmit.html', form=form)
 
 # Hours View route
@@ -550,6 +543,7 @@ def supv_results():
 # Onboarding route
 @app.route('/onboarding', methods=['GET', 'POST'])
 def onboarding():
+    message = ''
     form = OnboardingForm()
     if request.method == 'POST' and form.validate_on_submit():
         conn = mysql.connect()
@@ -572,12 +566,8 @@ def onboarding():
         return render_template('confirm.html', hours=False)
     # The password fields are the only things that can invalidate the form
     elif request.method == 'POST' and (not form.validate_on_submit()):
-        for field, errors in form.errors.items():
-            for error in errors:
-                flash('Error: {}'.format(
-                    getattr(form, field).label.text, error
-                ), 'error')
-    return render_template('onboarding.html', form=form)
+        message = "Your password fields didn't match."
+    return render_template('onboarding.html', form=form, message=message)
 
 # Error routes
 @app.errorhandler(401)
