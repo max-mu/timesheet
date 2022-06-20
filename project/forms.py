@@ -3,17 +3,18 @@ from wtforms import SubmitField, StringField, PasswordField, DateField, \
 from flask_wtf import FlaskForm
 from wtforms.validators import InputRequired, EqualTo
 from __init__ import mysql
+from datetime import datetime
 import pymysql
 
 # Hours Submission Form
 class HoursForm(FlaskForm):
     id = HiddenField()
     date = DateField(label='Date', 
-        validators=[InputRequired()], format='%Y-%m-%d')
+        validators=[InputRequired()], format='%Y-%m-%d', default=datetime.now())
     clock_in = StringField(label='Clock In', validators=[InputRequired()])
     clock_out = StringField(label='Clock Out', validators=[InputRequired()])
     pto = DecimalField(label='Holiday/Paid Time Off', 
-        validators=[InputRequired()])
+        validators=[InputRequired()], default=0)
     hours = DecimalField(label='Total Hours', validators=[InputRequired()])
     approved = HiddenField()
     submit = SubmitField(label='Submit')
