@@ -1,0 +1,6 @@
+# Python executables
+*.pyc
+
+# folders to be ignored
+.venv/
+__pycache__/
