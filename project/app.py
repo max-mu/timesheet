@@ -6,7 +6,7 @@ from flask_login import login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.wrappers import Response
 from __init__ import app, mysql
-from forms import HoursForm, LoginForm, HRGeneralForm, SupvHoursForm, \
+from forms import HREmployeeForm, HoursForm, LoginForm, HRGeneralForm, SupvHoursForm, \
     OnboardingForm, EmployHoursForm
 from models import Employees
 from datetime import datetime
@@ -71,6 +71,7 @@ def login():
         conn.close()
         not_none = result is not None
         check_pass = check_password_hash(result['password'], password)
+
         # Valid login, will be logged in to check permissions
         if not_none and check_pass:
             user = Employees.query.filter_by(email=email).first()
@@ -152,6 +153,7 @@ def hours_search():
         begin_conv = datetime.strptime(begin_str, '%Y-%m-%d').date()
         end_conv = datetime.strptime(end_str, '%Y-%m-%d').date()
         end_first = (end_conv < begin_conv)
+        
         # End date is before begin date
         if end_first:
             message = 'The end date was before the begin date. \
@@ -166,6 +168,7 @@ def hours_search():
             results = cur.fetchall()
             cur.close()
             conn.close()
+
             # No results in the time frame
             if len(results) == 0:
                 message = 'There were no results from %s \
@@ -175,6 +178,7 @@ def hours_search():
                 return render_template('hours-results.html', results=results,
                     message='', first_id=results[0]['id'],
                     last_id=results[len(results) - 1]['id'])
+
     return render_template('hours-search.html', form=form, message=message)
 
 # Adjust Hours route, should only be redirected from hours-adjust.html
@@ -214,16 +218,19 @@ def hours_adjust():
     cur.close()
     conn.close()
     message = 'The entry has been updated and unapproved.'
+
     # Gets redirected to employee search results
     if type == 'employ':
         return render_template('hours-results.html', results=results, 
             message=message, first_id=results[0]['id'], 
             last_id=results[len(results) - 1]['id'])
+
     # Redirected to supverisor search results, only one employee searched
     elif type == 'supv':
         return render_template('supv-results.html', results=results, 
             message=message, first_id=results[0]['id'], 
             last_id=results[len(results) - 1]['id'], all_flag=False)
+
     # Redirected to supverisor search results, all employees searched
     else:
         return render_template('supv-results.html', results=results, 
@@ -240,6 +247,7 @@ def edit_or_remove():
     id = request.form['id']
     first_date = request.form['first_date']
     last_date = request.form['last_date']
+
     # Action was edit
     if choice == 'edit':
         query = 'SELECT * FROM timesheet WHERE id = "%s"'%id
@@ -251,6 +259,7 @@ def edit_or_remove():
         return render_template('hours-adjust.html', result=result, name=current_user.name,
             id=id,first_date=first_date, last_date=last_date, form=form, 
             type='employ')
+
     # Action was delete
     else:
         query = 'DELETE FROM timesheet WHERE id = "%s"'%id
@@ -282,6 +291,7 @@ def generate_csv(results, name, begin_str, end_str):
         yield data.getvalue()
         data.seek(0)
         data.truncate(0)
+
         # Data
         for record in results:
             # Same employee as the last write in
@@ -296,6 +306,7 @@ def generate_csv(results, name, begin_str, end_str):
                 yield data.getvalue()
                 data.seek(0)
                 data.truncate(0)
+
             # Different employee
             else:
                 # Not the first entry, creates the summary for the last employee
@@ -321,6 +332,7 @@ def generate_csv(results, name, begin_str, end_str):
                 yield data.getvalue()
                 data.seek(0)
                 data.truncate(0)
+
         # Write in the last employee's summary
         w.writerow(('', '', '', '', '', '', '', total_hours,
             all_approved))
@@ -343,6 +355,7 @@ def hr():
         name = request.form['name']
         all_flag = name == 'all'
         search_edit = request.form['search_edit']
+
         # Edit employee info
         if search_edit == 'edit':
             # Cannot select 'All Employees' for this action
@@ -352,11 +365,14 @@ def hr():
                 conn = mysql.connect()
                 cur = conn.cursor(pymysql.cursors.DictCursor)
                 query = 'SELECT * FROM employees WHERE name = "%s"'%name
-                cur.execute()
+                cur.execute(query)
                 result = cur.fetchone()
                 cur.close()
                 conn.close()
-                return render_template('hr-employees.html', result=result)
+                form = HREmployeeForm()
+                return render_template('hr-employees.html', form=form, 
+                    result=result)
+
         # Search timesheet
         else:
             begin_str = request.form['date_begin']
@@ -370,6 +386,7 @@ def hr():
                 begin_conv = datetime.strptime(begin_str, '%Y-%m-%d').date()
                 end_conv = datetime.strptime(end_str, '%Y-%m-%d').date()
                 end_first = (end_conv < begin_conv)
+
                 # End date is before begin date
                 if end_first:
                     message = 'The end date was before the begin date. \
@@ -378,6 +395,7 @@ def hr():
                     conn = mysql.connect()
                     cur = conn.cursor(pymysql.cursors.DictCursor)
                     results = ()
+
                     # If all employees were selected
                     if all_flag:
                         query = 'SELECT * FROM timesheet WHERE date BETWEEN \
@@ -392,6 +410,7 @@ def hr():
                             message = 'There were no results from %s \
                                 to %s. If you were expecting results, please \
                                 double check all fields.'%(begin_str, end_str)
+
                     # Only one employee was selected
                     else:
                         query = 'SELECT * FROM timesheet WHERE name = "%s" \
@@ -407,6 +426,7 @@ def hr():
                                 to %s. If you were expecting results, please \
                                 double check all fields.'%(name, begin_str, 
                                 end_str)
+
                     # No error messages
                     if message == '':
                         # Displays results in a table in a browser
@@ -417,6 +437,7 @@ def hr():
                         else:
                             return generate_csv(results, name, begin_str, 
                                 end_str)
+
     return render_template('hr.html', form=form, message=message)
 
 # Employee Info Editing route
@@ -456,7 +477,8 @@ def hr_employees():
 def supv():
     message = ''
     form = SupvHoursForm(current_user.name)
-    if request.method == 'POST' and form.validate_on_submit():
+    if request.method == 'POST':
+        form = SupvHoursForm(current_user.name)
         name = request.form['name']
         begin_str = request.form['date_begin']
         end_str = request.form['date_end']
@@ -471,6 +493,7 @@ def supv():
             conn = mysql.connect()
             cur = conn.cursor(pymysql.cursors.DictCursor)
             all_flag = None
+
             # If all employees for the supervisor was selected
             if name == 'all':
                 all_flag = True
@@ -488,6 +511,7 @@ def supv():
                     message = 'There were no results from %s \
                         to %s. If you were expecting results, please \
                         double check all fields.'%(begin_str, end_str)
+
             # Only one specific employee was selected
             else:
                 all_flag = False
@@ -503,11 +527,13 @@ def supv():
                     message = 'There were no results for %s from %s \
                         to %s. If you were expecting results, please \
                         double check all fields.'%(name, begin_str, end_str)
+
             # If there are no error messages
             if message == '':
                 return render_template('supv-results.html', results=results,
                     message=message, first_id=results[0]['id'], 
                     last_id=results[len(results)-1]['id'], all_flag=all_flag)
+
     return render_template('supv.html', form=form, message=message)
 
 # Supervisor Results route
@@ -533,6 +559,7 @@ def supv_results():
         last_query = 'SELECT * FROM timesheet WHERE name = "%s" AND date BETWEEN \
             "%s" AND "%s" ORDER BY name, date'%(name, first_date,
             last_date)
+
     # If no records were selected
     if len(list) == 0:
         cur.execute(last_query)
@@ -544,8 +571,9 @@ def supv_results():
         return render_template('supv-results.html', results=results, 
             message=message, first_id=results[0]['id'], 
             last_id=results[len(results)-1]['id'], all_flag=all_flag)
+
     choice = request.form['choice']
-    # Edit
+    # Action is edit
     if choice == 'edit':
         # Checks to see if there is more than one entry selected
         if len(list) > 1:
@@ -559,21 +587,23 @@ def supv_results():
             conn.close()
             form = HoursForm()
             if all_flag:
-                return render_template('hours-adjust.html', result=result, name=name,
-                    id=id, first_date=first_date, last_date=last_date, 
-                    form=form, type='supv_all')
+                return render_template('hours-adjust.html', result=result, 
+                    name=name, id=id, first_date=first_date, 
+                    last_date=last_date, form=form, type='supv_all')
             else:
-                return render_template('hours-adjust.html', result=result, name=name,
-                    id=id, first_date=first_date, last_date=last_date, 
-                    form=form, type='supv')
-    # Delete
+                return render_template('hours-adjust.html', result=result, 
+                    name=name, id=id, first_date=first_date, 
+                    last_date=last_date, form=form, type='supv')
+
+    # Action is delete
     elif choice == 'delete':
         for id in list:
             query = 'DELETE FROM timesheet WHERE id = "%s"'%id
             cur.execute(query)
             conn.commit()
         message = 'The entry has been deleted.'
-    # Approve
+
+    # Action is approve
     elif choice == 'approve':
         for id in list:
             query = 'UPDATE timesheet SET approval = "Approved" WHERE \
@@ -581,7 +611,8 @@ def supv_results():
             cur.execute(query)
             conn.commit()
         message = 'All selected entries were approved.'
-    # Unappove
+
+    # Action is unappove
     else:
         for id in list:
             query = 'UPDATE timesheet SET approval = "Not Approved" WHERE \
@@ -589,6 +620,7 @@ def supv_results():
             cur.execute(query)
             conn.commit()
         message = 'All selected entries were unapproved.'
+
     cur.execute(last_query)
     results = cur.fetchall()
     cur.close()
