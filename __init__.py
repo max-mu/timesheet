@@ -11,8 +11,14 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = config('SECRET_KEY')
 Bootstrap(app)
 
+user = config('DB_USER')
+password = config('DB_PASSWORD')
+host = config('DB_HOST')
+database = config('DB_NAME')
+
 # SQLAlchemy is used for login authorization
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:Test1234!@127.0.0.1/ksldata'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://%s:%s@%s/%s'%(user, 
+    password, host, database)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 db = SQLAlchemy(app)
 
@@ -24,10 +30,10 @@ def load_user(user_id):
     return Employees.query.get(user_id)
 
 # All other queries are done through MySQL
-app.config['MYSQL_DATABASE_USER'] = 'root'
-app.config['MYSQL_DATABASE_PASSWORD'] = 'Test1234!'
-app.config['MYSQL_DATABASE_DB'] = 'ksldata'
-app.config['MYSQL_DATABASE_HOST'] = '127.0.0.1'
+app.config['MYSQL_DATABASE_USER'] = user
+app.config['MYSQL_DATABASE_PASSWORD'] = password
+app.config['MYSQL_DATABASE_DB'] = database
+app.config['MYSQL_DATABASE_HOST'] = host
 mysql = MySQL(app)
 
 Principal(app)
