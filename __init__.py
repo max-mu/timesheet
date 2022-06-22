@@ -4,10 +4,11 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flaskext.mysql import MySQL
 from flask_principal import Principal
+from decouple import config
 
 app = Flask(__name__)
 # TODO: Change this key in the end
-app.config['SECRET_KEY'] = 'not a secure key'    
+app.config['SECRET_KEY'] = config('SECRET_KEY')
 Bootstrap(app)
 
 # SQLAlchemy is used for login authorization
