@@ -8,4 +8,4 @@ Package Installations:
 - pip install pymysql
 - pip install flask-mysql
 - pip install flask_principal
-- pip install decouple
+- pip install python-decouple
