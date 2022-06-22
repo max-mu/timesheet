@@ -4,17 +4,19 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flaskext.mysql import MySQL
 from flask_principal import Principal
-from decouple import config
+from dotenv import load_dotenv
+import os
 
+load_dotenv()
 app = Flask(__name__)
 # TODO: Change this key in the end
-app.config['SECRET_KEY'] = config('SECRET_KEY')
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 Bootstrap(app)
 
-user = config('DB_USER')
-password = config('DB_PASSWORD')
-host = config('DB_HOST')
-database = config('DB_NAME')
+user = os.getenv('DB_USER')
+password = os.getenv('DB_PASSWORD')
+host = os.getenv('DB_HOST')
+database = os.getenv('DB_NAME')
 
 # SQLAlchemy is used for login authorization
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://%s:%s@%s/%s'%(user, 
