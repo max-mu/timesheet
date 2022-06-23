@@ -14,4 +14,4 @@ Package Installations:
 - pip install flask-mysql
 
 # PostgreSQL
-- pip install psycopg2
+- pip install psycopg2-binary
