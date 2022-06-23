@@ -682,3 +682,6 @@ def internal_server_error(e):
     return render_template('error.html', error=e,
         pageheading="Internal server error (500)",
         logged_in=current_user.is_authenticated)
+
+if __name__ == '__main__':
+    app.run()
