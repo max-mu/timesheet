@@ -9,3 +9,4 @@ Package Installations:
 - pip install flask-mysql
 - pip install flask_principal
 - pip install python-dotenv
+- pip install gunicorn
