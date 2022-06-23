@@ -8,11 +8,11 @@
   {{ form.csrf_token }}
   <input type="hidden" name="id" value="{{ id }}">
   <input type="hidden" name="name" value="{{ name }}">
-  {{ wtf.form_field(form.date, value=result['date']) }}
-  {{ wtf.form_field(form.clock_in, value=result['clock_in']) }}
-  {{ wtf.form_field(form.clock_out, value=result['clock_out']) }}
-  {{ wtf.form_field(form.pto, value=result['pto']) }}
-  {{ wtf.form_field(form.hours, value=result['hours']) }}
+  {{ wtf.form_field(form.date, value=result[2]) }}
+  {{ wtf.form_field(form.clock_in, value=result[3]) }}
+  {{ wtf.form_field(form.clock_out, value=result[4]) }}
+  {{ wtf.form_field(form.pto, value=result[5]) }}
+  {{ wtf.form_field(form.hours, value=result[6]) }}
   {{ wtf.form_field(form.submit) }}
   <input type="hidden" name="first_date" value="{{ first_date }}">
   <input type="hidden" name="last_date" value="{{ last_date }}">

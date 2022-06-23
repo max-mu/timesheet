@@ -14,13 +14,13 @@
     </tr>
     {% for data in results %}
       <tr>
-        <td>{{ data['name'] }}</td>
-        <td>{{ data['date'] }}</td>
-        <td>{{ data['clock_in'] }}</td>
-        <td>{{ data['clock_out'] }}</td>
-        <td>{{ data['pto'] }}</td>
-        <td>{{ data['hours'] }}</td>
-        <td>{{ data['approval'] }}</td>
+        <td>{{ data[1] }}</td>
+        <td>{{ data[2] }}</td>
+        <td>{{ data[3] }}</td>
+        <td>{{ data[4] }}</td>
+        <td>{{ data[5] }}</td>
+        <td>{{ data[6] }}</td>
+        <td>{{ data[7] }}</td>
       </tr>
     {% endfor %}
   </table>

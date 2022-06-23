@@ -40,14 +40,14 @@ def get_name_choices(type, supv):
     cur = conn.cursor()
     query = ''
     if type == 'hr':
-        query = 'SELECT name FROM employees'
+        query = "SELECT name FROM employees"
     else:
-        query = 'SELECT name FROM employees WHERE supv = \
-            "%s"'%(supv)
+        query = "SELECT name FROM employees WHERE supv = \
+            '%s'"%(supv)
     cur.execute(query)
     list = cur.fetchall()
     for data in list:
-        choices.append((data['name'], data['name']))
+        choices.append((data[0], data[0]))
     return choices
 
 # HR Hours Search Form

@@ -28,7 +28,7 @@ def on_identity_loaded(sender, identity):
         conn = psycopg2.connect(host=host, database=database, user=user, 
             password=password)
         cur = conn.cursor()
-        query = 'SELECT roles FROM employees WHERE id = "%s"'%identity.id
+        query = "SELECT roles FROM employees WHERE id = '%s'"%identity.id
         cur.execute(query)
         role = cur.fetchone()
         if role[0] == 'hr':
@@ -64,22 +64,22 @@ def login():
             password=password)
         cur = conn.cursor()
         email = request.form['email']
-        password = request.form['password']
+        pwd = request.form['password']
         choice = request.form['choice']
-        query = 'SELECT password FROM employees WHERE email = "%s"'%email
+        query = "SELECT password FROM employees WHERE email = '%s'"%email
         cur.execute(query)
         result = cur.fetchone()
         cur.close()
         conn.close()
         not_none = result is not None
-        check_pass = check_password_hash(result['password'], password)
+        check_pass = check_password_hash(result[0], pwd)
 
         # Valid login, will be logged in to check permissions
         if not_none and check_pass:
-            user = Employees.query.filter_by(email=email).first()
-            login_user(user)
+            employee = Employees.query.filter_by(email=email).first()
+            login_user(employee)
             identity_changed.send(current_app._get_current_object(),
-                    identity=Identity(user.id))
+                    identity=Identity(employee.id))
             try:
                 # In HR
                 if choice == 'hr':
@@ -133,9 +133,9 @@ def hours_submit():
         pto = request.form['pto']
         hours = request.form['hours']
         approval = 'Not Approved'
-        query = 'INSERT INTO timesheet (name,  date, clock_in, \
-            clock_out, pto, hours, approval) VALUES ("%s", "%s", \
-            "%s", "%s", "%s", "%s", "%s")'%(name, date, clock_in, 
+        query = "INSERT INTO timesheet (name,  date, clock_in, \
+            clock_out, pto, hours, approval) VALUES ('%s', '%s', \
+            '%s', '%s', '%s', '%s', '%s')"%(name, date, clock_in, 
             clock_out, pto, hours, approval)
         cur.execute(query)
         conn.commit()
@@ -165,11 +165,12 @@ def hours_search():
             conn = psycopg2.connect(host=host, database=database, user=user, 
                 password=password)
             cur = conn.cursor()
-            query = 'SELECT * FROM timesheet WHERE name = "%s" \
-                    AND date BETWEEN "%s" AND "%s" ORDER BY date'%(
+            query = "SELECT * FROM timesheet WHERE name = '%s' \
+                    AND date BETWEEN '%s' AND '%s' ORDER BY date"%(
                     current_user.name, begin_conv, end_conv)
             cur.execute(query)
             results = cur.fetchall()
+            print(results)
             cur.close()
             conn.close()
 
@@ -180,8 +181,8 @@ def hours_search():
                     double check all fields.'%(begin_str, end_str)
             else:
                 return render_template('hours-results.html', results=results,
-                    message='', first_id=results[0]['id'],
-                    last_id=results[len(results) - 1]['id'])
+                    message='', first_id=results[0][0],
+                    last_id=results[len(results) - 1][0])
 
     return render_template('hours-search.html', form=form, message=message)
 
@@ -204,20 +205,20 @@ def hours_adjust():
     first_date = request.form['first_date']
     last_date = request.form['last_date']
     type = request.form['type']
-    query = 'UPDATE timesheet SET date = "%s", clock_in = "%s", \
-        clock_out = "%s", pto = "%s", hours = "%s", approval = "%s" \
-        WHERE id = "%s"'%(date, clock_in, clock_out, pto, hours, approval, id)
+    query = "UPDATE timesheet SET date = '%s', clock_in = '%s', \
+        clock_out = '%s', pto = '%s', hours = '%s', approval = '%s' \
+        WHERE id = '%s'"%(date, clock_in, clock_out, pto, hours, approval, id)
     cur.execute(query)
     conn.commit()
     if type == 'supv_all':
-        query = 'SELECT timesheet.id, timesheet.name, date, clock_in, \
+        query = "SELECT timesheet.id, timesheet.name, date, clock_in, \
             clock_out, pto, hours, approval, supv FROM timesheet INNER \
             JOIN employees ON employees.name=timesheet.name WHERE supv = \
-            "%s" AND date BETWEEN "%s" AND "%s" ORDER BY name, date'%(
+            '%s' AND date BETWEEN '%s' AND '%s' ORDER BY name, date"%(
             current_user.name, first_date, last_date)
     else:
-        query = 'SELECT * FROM timesheet WHERE name = "%s" AND date BETWEEN \
-            "%s" AND "%s" ORDER BY date'%(name, first_date, last_date)
+        query = "SELECT * FROM timesheet WHERE name = '%s' AND date BETWEEN \
+            '%s' AND '%s' ORDER BY date"%(name, first_date, last_date)
     cur.execute(query)
     results = cur.fetchall()
     cur.close()
@@ -227,20 +228,20 @@ def hours_adjust():
     # Gets redirected to employee search results
     if type == 'employ':
         return render_template('hours-results.html', results=results, 
-            message=message, first_id=results[0]['id'], 
-            last_id=results[len(results) - 1]['id'])
+            message=message, first_id=results[0][0], 
+            last_id=results[len(results) - 1][0])
 
     # Redirected to supverisor search results, only one employee searched
     elif type == 'supv':
         return render_template('supv-results.html', results=results, 
-            message=message, first_id=results[0]['id'], 
-            last_id=results[len(results) - 1]['id'], all_flag=False)
+            message=message, first_id=results[0][0], 
+            last_id=results[len(results) - 1][0], all_flag=False)
 
     # Redirected to supverisor search results, all employees searched
     else:
         return render_template('supv-results.html', results=results, 
-            message=message, first_id=results[0]['id'], 
-            last_id=results[len(results) - 1]['id'], all_flag=True)
+            message=message, first_id=results[0][0], 
+            last_id=results[len(results) - 1][0], all_flag=True)
 
 # Hours Edit or Remove route
 @app.route('/edit-or-remove', methods=['GET', 'POST'])
@@ -256,7 +257,7 @@ def edit_or_remove():
 
     # Action was edit
     if choice == 'edit':
-        query = 'SELECT * FROM timesheet WHERE id = "%s"'%id
+        query = "SELECT * FROM timesheet WHERE id = '%s'"%id
         cur.execute(query)
         result = cur.fetchone()
         cur.close()
@@ -268,11 +269,11 @@ def edit_or_remove():
 
     # Action was delete
     else:
-        query = 'DELETE FROM timesheet WHERE id = "%s"'%id
+        query = "DELETE FROM timesheet WHERE id = '%s'"%id
         cur.execute(query)
         conn.commit()
-        query = 'SELECT * FROM timesheet WHERE name = "%s" AND date BETWEEN \
-            "%s" AND "%s" ORDER BY date'%(current_user.name, first_date, 
+        query = "SELECT * FROM timesheet WHERE name = '%s' AND date BETWEEN \
+            '%s' AND '%s' ORDER BY date"%(current_user.name, first_date, 
             last_date)
         cur.execute(query)
         results = cur.fetchall()
@@ -280,8 +281,8 @@ def edit_or_remove():
         conn.close()
         message = 'The entry has been deleted.'
         return render_template('hours-results.html', results=results, 
-            message=message, first_id=results[0]['id'], 
-            last_id=results[len(results) - 1]['id'])
+            message=message, first_id=results[0][0], 
+            last_id=results[len(results) - 1][0])
 
 # Generates the CSV for HR
 def generate_csv(results, name, begin_str, end_str):
@@ -301,14 +302,12 @@ def generate_csv(results, name, begin_str, end_str):
         # Data
         for record in results:
             # Same employee as the last write in
-            if record['name'] == cur_name:
-                total_hours += record['hours']
-                rec_approve = record['approval']
+            if record[1] == cur_name:
+                total_hours += record[6]
+                rec_approve = record[7]
                 all_approved = all_approved and rec_approve
-                w.writerow((record['name'], record['date'],
-                    record['clock_in'], record['clock_out'], 
-                    record['pto'], record['hours'], 
-                    record['approval']))
+                w.writerow((record[1], record[2], record[3], record[4], 
+                    record[5], record[6], record[7]))
                 yield data.getvalue()
                 data.seek(0)
                 data.truncate(0)
@@ -328,13 +327,11 @@ def generate_csv(results, name, begin_str, end_str):
                     data.truncate(0)
                 # Prepares for the next employee, writes in first entry for
                 # the employee
-                cur_name = record['name']
-                total_hours = record['hours']
-                all_approved = record['approval'] == 'Approved'
-                w.writerow((record['name'], record['date'],
-                    record['clock_in'], record['clock_out'], 
-                    record['pto'], record['hours'], 
-                    record['approval']))
+                cur_name = record[1]
+                total_hours = record[6]
+                all_approved = record[7] == 'Approved'
+                w.writerow((record[1], record[2], record[3], record[4], 
+                    record[5], record[6], record[7]))
                 yield data.getvalue()
                 data.seek(0)
                 data.truncate(0)
@@ -347,7 +344,7 @@ def generate_csv(results, name, begin_str, end_str):
         data.truncate(0)
     response = Response(generate(), mimetype='text/csv')
     response.headers.set('Content-Disposition', 'attachment', 
-        filename='"%s"_"%s"_"%s".csv'%(name, begin_str,
+        filename="%s_%s_%s.csv"%(name, begin_str,
         end_str))
     return response
 
@@ -371,7 +368,7 @@ def hr():
                 conn = psycopg2.connect(host=host, database=database, user=user, 
                     password=password)
                 cur = conn.cursor()
-                query = 'SELECT * FROM employees WHERE name = "%s"'%name
+                query = "SELECT * FROM employees WHERE name = '%s'"%name
                 cur.execute(query)
                 result = cur.fetchone()
                 cur.close()
@@ -406,8 +403,8 @@ def hr():
 
                     # If all employees were selected
                     if all_flag:
-                        query = 'SELECT * FROM timesheet WHERE date BETWEEN \
-                            "%s" AND "%s" ORDER BY name, date'%(begin_conv, 
+                        query = "SELECT * FROM timesheet WHERE date BETWEEN \
+                            '%s' AND '%s' ORDER BY name, date"%(begin_conv, 
                             end_conv)
                         cur.execute(query)
                         results = cur.fetchall()
@@ -421,8 +418,8 @@ def hr():
 
                     # Only one employee was selected
                     else:
-                        query = 'SELECT * FROM timesheet WHERE name = "%s" \
-                            AND date BETWEEN "%s" AND "%s" ORDER BY date'%(name, 
+                        query = "SELECT * FROM timesheet WHERE name = '%s' \
+                            AND date BETWEEN '%s' AND '%s' ORDER BY date"%(name, 
                             begin_conv, end_conv)
                         cur.execute(query)
                         results = cur.fetchall()
@@ -458,7 +455,7 @@ def hr_employees():
         password=password)
     cur = conn.cursor()
     if choice == 'delete':
-        query = 'DELETE FROM timesheet WHERE id = "%s"'%id
+        query = "DELETE FROM timesheet WHERE id = '%s'"%id
         cur.execute(query)
         conn.commit()
         message = "The employee's information has been deleted."
@@ -468,9 +465,11 @@ def hr_employees():
         phone = request.form['phone']
         supv = request.form['supv']
         roles = request.form['roles']
-        query = 'UPDATE employees SET name = "%s", email = "%s", \
-            phone = "%s", supv = "%s", roles = "%s" WHERE id = "%s"\
-            '%(name, email, phone, supv, roles, id)
+        if roles == '':
+            roles = 'None'
+        query = "UPDATE employees SET name = '%s', email = '%s', \
+            phone = '%s', supv = '%s', roles = '%s' WHERE id = '%s'\
+            "%(name, email, phone, supv, roles, id)
         cur.execute(query)
         conn.commit()
         message = "The employee's information has been edited."
@@ -507,10 +506,10 @@ def supv():
             # If all employees for the supervisor was selected
             if name == 'all':
                 all_flag = True
-                query = 'SELECT timesheet.id, timesheet.name, date, clock_in, \
+                query = "SELECT timesheet.id, timesheet.name, date, clock_in, \
                     clock_out, pto, hours, approval, supv FROM timesheet INNER \
                     JOIN employees ON employees.name=timesheet.name WHERE supv = \
-                    "%s" AND date BETWEEN "%s" AND "%s" ORDER BY name, date'%(
+                    '%s' AND date BETWEEN '%s' AND '%s' ORDER BY name, date"%(
                     current_user.name, begin_conv, end_conv)
                 cur.execute(query)
                 results = cur.fetchall()
@@ -525,8 +524,8 @@ def supv():
             # Only one specific employee was selected
             else:
                 all_flag = False
-                query = 'SELECT * FROM timesheet WHERE name = "%s" \
-                    AND date BETWEEN "%s" AND "%s" ORDER BY date'%(name, 
+                query = "SELECT * FROM timesheet WHERE name = '%s' \
+                    AND date BETWEEN '%s' AND '%s' ORDER BY date"%(name, 
                     begin_conv, end_conv)
                 cur.execute(query)
                 results = cur.fetchall()
@@ -541,8 +540,8 @@ def supv():
             # If there are no error messages
             if message == '':
                 return render_template('supv-results.html', results=results,
-                    message=message, first_id=results[0]['id'], 
-                    last_id=results[len(results)-1]['id'], all_flag=all_flag)
+                    message=message, first_id=results[0][0], 
+                    last_id=results[len(results)-1][0], all_flag=all_flag)
 
     return render_template('supv.html', form=form, message=message)
 
@@ -561,14 +560,14 @@ def supv_results():
     message = ''
     last_query = ''
     if all_flag:
-        last_query = 'SELECT timesheet.id, timesheet.name, date, clock_in, \
+        last_query = "SELECT timesheet.id, timesheet.name, date, clock_in, \
             clock_out, pto, hours, approval, supv FROM timesheet INNER \
             JOIN employees ON employees.name=timesheet.name WHERE supv = \
-            "%s" AND date BETWEEN "%s" AND "%s" ORDER BY name, date'%(
+            '%s' AND date BETWEEN '%s' AND '%s' ORDER BY name, date"%(
             current_user.name, first_date, last_date)
     else:
-        last_query = 'SELECT * FROM timesheet WHERE name = "%s" AND date BETWEEN \
-            "%s" AND "%s" ORDER BY name, date'%(name, first_date,
+        last_query = "SELECT * FROM timesheet WHERE name = '%s' AND date BETWEEN \
+            '%s' AND '%s' ORDER BY name, date"%(name, first_date,
             last_date)
 
     # If no records were selected
@@ -580,8 +579,8 @@ def supv_results():
         cur.close()
         conn.close()
         return render_template('supv-results.html', results=results, 
-            message=message, first_id=results[0]['id'], 
-            last_id=results[len(results)-1]['id'], all_flag=all_flag)
+            message=message, first_id=results[0][0], 
+            last_id=results[len(results)-1][0], all_flag=all_flag)
 
     choice = request.form['choice']
     # Action is edit
@@ -591,7 +590,7 @@ def supv_results():
             message = 'You can only edit one entry at a time.'
         else:
             id = list[0]
-            query = 'SELECT * FROM timesheet WHERE id = "%s"'%id
+            query = "SELECT * FROM timesheet WHERE id = '%s'"%id
             cur.execute(query)
             result = cur.fetchone()
             cur.close()
@@ -609,7 +608,7 @@ def supv_results():
     # Action is delete
     elif choice == 'delete':
         for id in list:
-            query = 'DELETE FROM timesheet WHERE id = "%s"'%id
+            query = "DELETE FROM timesheet WHERE id = '%s'"%id
             cur.execute(query)
             conn.commit()
         message = 'The entry has been deleted.'
@@ -617,8 +616,8 @@ def supv_results():
     # Action is approve
     elif choice == 'approve':
         for id in list:
-            query = 'UPDATE timesheet SET approval = "Approved" WHERE \
-                id = "%s"'%id
+            query = "UPDATE timesheet SET approval = 'Approved' WHERE \
+                id = '%s'"%id
             cur.execute(query)
             conn.commit()
         message = 'All selected entries were approved.'
@@ -626,8 +625,8 @@ def supv_results():
     # Action is unappove
     else:
         for id in list:
-            query = 'UPDATE timesheet SET approval = "Not Approved" WHERE \
-                id = "%s"'%id
+            query = "UPDATE timesheet SET approval = 'Not Approved' WHERE \
+                id = '%s'"%id
             cur.execute(query)
             conn.commit()
         message = 'All selected entries were unapproved.'
@@ -637,8 +636,8 @@ def supv_results():
     cur.close()
     conn.close()
     return render_template('supv-results.html', results=results, 
-        message=message, first_id=results[0]['id'], 
-        last_id=results[len(results)-1]['id'], all_flag=all_flag)
+        message=message, first_id=results[0][0], 
+        last_id=results[len(results)-1][0], all_flag=all_flag)
 
 # Onboarding route
 @app.route('/onboarding', methods=['GET', 'POST'])
@@ -651,15 +650,15 @@ def onboarding():
         cur = conn.cursor()
         name = request.form['name']
         email = request.form['email']
-        password = generate_password_hash(request.form['password'])
+        pwd = generate_password_hash(request.form['password'])
         address = request.form['address']
         phone = request.form['phone']
         supv = request.form['supv']
         roles = request.form['roles']
-        query = 'INSERT INTO employees (name, email, password, \
+        query = "INSERT INTO employees (name, email, password, \
             address, phone, supv, roles) VALUES \
-            ("%s", "%s", "%s", "%s", "%s", "%s", "%s")'%(name, 
-            email,  password, address, phone, supv, roles)
+            ('%s', '%s', '%s', '%s', '%s', '%s', '%s')"%(name, 
+            email,  pwd, address, phone, supv, roles)
         cur.execute(query)
         conn.commit()
         cur.close()

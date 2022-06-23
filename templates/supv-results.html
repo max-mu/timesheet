@@ -45,22 +45,22 @@
   </tr>
   {% for data in results %}
     <tr>
-      <td class="center-align"><input type="checkbox" class="checkbox" name="selection" value="{{ data['id'] }}" onclick="checkSelection()"></td>
-      <td>{{ data['name'] }}</td>
-      <td>{{ data['date'] }}</td>
-      <td>{{ data['clock_in'] }}</td>
-      <td>{{ data['clock_out'] }}</td>
-      <td>{{ data['pto'] }}</td>
-      <td>{{ data['hours'] }}</td>
-      <td>{{ data['approval'] }}</td>
+      <td class="center-align"><input type="checkbox" class="checkbox" name="selection" value="{{ data[0] }}" onclick="checkSelection()"></td>
+      <td>{{ data[1] }}</td>
+      <td>{{ data[2] }}</td>
+      <td>{{ data[3] }}</td>
+      <td>{{ data[4] }}</td>
+      <td>{{ data[5] }}</td>
+      <td>{{ data[6] }}</td>
+      <td>{{ data[7] }}</td>
     </tr>
-    {% if data['id']==first_id %}
-      <input type="hidden" name="name" value="{{ data['name'] }}">
+    {% if data[0]==first_id %}
+      <input type="hidden" name="name" value="{{ data[1] }}">
       <input type="hidden" name="all_flag" value="{{ all_flag }}">
-      <input type="hidden" name="first_date" value="{{ data['date'] }}">
+      <input type="hidden" name="first_date" value="{{ data[2] }}">
     {% endif %}
-    {% if data['id']==last_id %}
-      <input type="hidden" name="last_date" value="{{ data['date'] }}">
+    {% if data[0]==last_id %}
+      <input type="hidden" name="last_date" value="{{ data[2] }}">
     {% endif %}
 {% endfor %}
 </table>

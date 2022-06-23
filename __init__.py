@@ -18,8 +18,7 @@ host = os.getenv('DB_HOST')
 database = os.getenv('DB_NAME')
 
 # SQLAlchemy is used for login authorization
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgres:///%s:%s@%s/%s'%(user, 
-    password, host, database)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql:///%s'%(database)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 db = SQLAlchemy(app)
 
