@@ -2,7 +2,6 @@ from flask import Flask
 from flask_bootstrap import Bootstrap
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
-from flaskext.mysql import MySQL
 from flask_principal import Principal
 from dotenv import load_dotenv
 import os
@@ -19,7 +18,7 @@ host = os.getenv('DB_HOST')
 database = os.getenv('DB_NAME')
 
 # SQLAlchemy is used for login authorization
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://%s:%s@%s/%s'%(user, 
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgres:///%s:%s@%s/%s'%(user, 
     password, host, database)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 db = SQLAlchemy(app)
@@ -32,10 +31,5 @@ def load_user(user_id):
     return Employees.query.get(user_id)
 
 # All other queries are done through MySQL
-app.config['MYSQL_DATABASE_USER'] = user
-app.config['MYSQL_DATABASE_PASSWORD'] = password
-app.config['MYSQL_DATABASE_DB'] = database
-app.config['MYSQL_DATABASE_HOST'] = host
-mysql = MySQL(app)
 
 Principal(app)

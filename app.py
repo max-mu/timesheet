@@ -5,14 +5,14 @@ from flask_principal import Identity, AnonymousIdentity, Permission, \
 from flask_login import login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.wrappers import Response
-from __init__ import app, mysql
+from __init__ import app, user, password, host, database
 from forms import HREmployeeForm, HoursForm, LoginForm, HRGeneralForm, SupvHoursForm, \
     OnboardingForm, EmployHoursForm
 from models import Employees
 from datetime import datetime
 from io import StringIO
+import psycopg2
 import csv
-import pymysql
 
 # Flask-Principal Roles and Permissions
 be_hr = RoleNeed('hr')
@@ -25,7 +25,8 @@ supv_permission = Permission(be_supv)
 def on_identity_loaded(sender, identity):
     if identity.id is not None:
         needs = []
-        conn = mysql.connect()
+        conn = psycopg2.connect(host=host, database=database, user=user, 
+            password=password)
         cur = conn.cursor()
         query = 'SELECT roles FROM employees WHERE id = "%s"'%identity.id
         cur.execute(query)
@@ -59,8 +60,9 @@ def login():
     message = ''
     form = LoginForm()
     if request.method == 'POST' and form.validate_on_submit():
-        conn = mysql.connect()
-        cur = conn.cursor(pymysql.cursors.DictCursor)
+        conn = psycopg2.connect(host=host, database=database, user=user, 
+            password=password)
+        cur = conn.cursor()
         email = request.form['email']
         password = request.form['password']
         choice = request.form['choice']
@@ -121,8 +123,9 @@ def hours():
 def hours_submit():
     form = HoursForm()
     if request.method == 'POST' and form.validate_on_submit():
-        conn = mysql.connect()
-        cur = conn.cursor(pymysql.cursors.DictCursor)
+        conn = psycopg2.connect(host=host, database=database, user=user, 
+            password=password)
+        cur = conn.cursor()
         name = current_user.name
         date = request.form['date']
         clock_in = request.form['clock_in']
@@ -159,8 +162,9 @@ def hours_search():
             message = 'The end date was before the begin date. \
                 Please double check your dates.'
         else:
-            conn = mysql.connect()
-            cur = conn.cursor(pymysql.cursors.DictCursor)
+            conn = psycopg2.connect(host=host, database=database, user=user, 
+                password=password)
+            cur = conn.cursor()
             query = 'SELECT * FROM timesheet WHERE name = "%s" \
                     AND date BETWEEN "%s" AND "%s" ORDER BY date'%(
                     current_user.name, begin_conv, end_conv)
@@ -186,8 +190,9 @@ def hours_search():
 @app.route('/hours-adjust', methods=['POST'])
 @login_required
 def hours_adjust():
-    conn = mysql.connect()
-    cur = conn.cursor(pymysql.cursors.DictCursor)
+    conn = psycopg2.connect(host=host, database=database, user=user, 
+        password=password)
+    cur = conn.cursor()
     id = request.form['id']
     name = request.form['name']
     date = request.form['date']
@@ -241,8 +246,9 @@ def hours_adjust():
 @app.route('/edit-or-remove', methods=['GET', 'POST'])
 @login_required
 def edit_or_remove():
-    conn = mysql.connect()
-    cur = conn.cursor(pymysql.cursors.DictCursor)
+    conn = psycopg2.connect(host=host, database=database, user=user, 
+        password=password)
+    cur = conn.cursor()
     choice = request.form['choice']
     id = request.form['id']
     first_date = request.form['first_date']
@@ -256,9 +262,9 @@ def edit_or_remove():
         cur.close()
         conn.close()
         form = HoursForm()
-        return render_template('hours-adjust.html', result=result, name=current_user.name,
-            id=id,first_date=first_date, last_date=last_date, form=form, 
-            type='employ')
+        return render_template('hours-adjust.html', result=result, 
+            name=current_user.name, id=id,first_date=first_date, 
+            last_date=last_date, form=form, type='employ')
 
     # Action was delete
     else:
@@ -362,8 +368,9 @@ def hr():
             if all_flag:
                 message = 'You cannot select all employees for editing.'
             else:
-                conn = mysql.connect()
-                cur = conn.cursor(pymysql.cursors.DictCursor)
+                conn = psycopg2.connect(host=host, database=database, user=user, 
+                    password=password)
+                cur = conn.cursor()
                 query = 'SELECT * FROM employees WHERE name = "%s"'%name
                 cur.execute(query)
                 result = cur.fetchone()
@@ -392,8 +399,9 @@ def hr():
                     message = 'The end date was before the begin date. \
                         Please double check your dates.'
                 else:
-                    conn = mysql.connect()
-                    cur = conn.cursor(pymysql.cursors.DictCursor)
+                    conn = psycopg2.connect(host=host, database=database, 
+                        user=user, password=password)
+                    cur = conn.cursor()
                     results = ()
 
                     # If all employees were selected
@@ -446,8 +454,9 @@ def hr_employees():
     message = ''
     id = request.form['id']
     choice = request.form['choice']
-    conn = mysql.connect()
-    cur = conn.cursor(pymysql.cursors.DictCursor)
+    conn = psycopg2.connect(host=host, database=database, user=user, 
+        password=password)
+    cur = conn.cursor()
     if choice == 'delete':
         query = 'DELETE FROM timesheet WHERE id = "%s"'%id
         cur.execute(query)
@@ -490,8 +499,9 @@ def supv():
             message = 'The end date was before the begin date. \
                 Please double check your dates.'
         else:
-            conn = mysql.connect()
-            cur = conn.cursor(pymysql.cursors.DictCursor)
+            conn = psycopg2.connect(host=host, database=database, user=user, 
+                password=password)
+            cur = conn.cursor()
             all_flag = None
 
             # If all employees for the supervisor was selected
@@ -541,8 +551,9 @@ def supv():
 @supv_permission.require()
 def supv_results():
     list = request.form.getlist('selection')
-    conn = mysql.connect()
-    cur = conn.cursor(pymysql.cursors.DictCursor)
+    conn = psycopg2.connect(host=host, database=database, user=user, 
+        password=password)
+    cur = conn.cursor()
     name = request.form['name']
     first_date = request.form['first_date']
     last_date = request.form['last_date']
@@ -635,8 +646,9 @@ def onboarding():
     message = ''
     form = OnboardingForm()
     if request.method == 'POST' and form.validate_on_submit():
-        conn = mysql.connect()
-        cur = conn.cursor(pymysql.cursors.DictCursor)
+        conn = psycopg2.connect(host=host, database=database, user=user, 
+            password=password)
+        cur = conn.cursor()
         name = request.form['name']
         email = request.form['email']
         password = generate_password_hash(request.form['password'])

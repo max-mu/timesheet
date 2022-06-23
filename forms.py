@@ -2,9 +2,9 @@ from wtforms import SubmitField, StringField, PasswordField, DateField, \
     DecimalField, HiddenField, SelectField, RadioField, IntegerField
 from flask_wtf import FlaskForm
 from wtforms.validators import InputRequired, EqualTo
-from __init__ import mysql
+from __init__ import host, database, user, password
 from datetime import datetime
-import pymysql
+import psycopg2
 
 # Hours Submission Form
 class HoursForm(FlaskForm):
@@ -35,8 +35,9 @@ class LoginForm(FlaskForm):
 # Generates the list of names of employees for FetchForm
 def get_name_choices(type, supv):
     choices = [('', ''), ('all', 'All employees')]
-    conn = mysql.connect()
-    cur = conn.cursor(pymysql.cursors.DictCursor)
+    conn = psycopg2.connect(host=host, database=database, 
+        user=user, password=password)
+    cur = conn.cursor()
     query = ''
     if type == 'hr':
         query = 'SELECT name FROM employees'
