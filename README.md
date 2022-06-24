@@ -10,3 +10,4 @@ Package Installations:
 - pip install flask_principal
 - pip install python-dotenv
 - pip install gunicorn
+- pip install cryptography
