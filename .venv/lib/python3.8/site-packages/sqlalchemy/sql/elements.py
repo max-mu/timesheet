@@ -148,7 +148,7 @@ def literal(value, type_=None):
 
 
 def outparam(key, type_=None):
-    """Create an 'OUT' parameter for usage in functions (stored procedures),
+    r"""Create an 'OUT' parameter for usage in functions (stored procedures),
     for databases which support them.
 
     The ``outparam`` can be used like a regular function parameter.
@@ -241,7 +241,14 @@ class ClauseElement(
         """
         skip = self._memoized_keys
         c = self.__class__.__new__(self.__class__)
-        c.__dict__ = {k: v for k, v in self.__dict__.items() if k not in skip}
+
+        if skip:
+            # ensure this iteration remains atomic
+            c.__dict__ = {
+                k: v for k, v in self.__dict__.copy().items() if k not in skip
+            }
+        else:
+            c.__dict__ = self.__dict__.copy()
 
         # this is a marker that helps to "equate" clauses to each other
         # when a Select returns its list of FROM clauses.  the cloning
@@ -998,7 +1005,7 @@ class ColumnElement(
 
         .. seealso::
 
-            :ref:`coretutorial_casts`
+            :ref:`tutorial_casts`
 
             :func:`_expression.cast`
 
@@ -1200,6 +1207,14 @@ class WrapsColumnExpression(object):
             return self._anon_label(nal + "_")
         else:
             return self._dedupe_anon_tq_label_idx(idx)
+
+    @property
+    def _proxy_key(self):
+        wce = self.wrapped_column_expression
+
+        if not wce._is_text_clause:
+            return wce._proxy_key
+        return super(WrapsColumnExpression, self)._proxy_key
 
 
 class BindParameter(roles.InElementRole, ColumnElement):
@@ -1457,15 +1472,6 @@ class BindParameter(roles.InElementRole, ColumnElement):
           .. versionchanged:: 1.3 the "expanding" bound parameter feature now
              supports empty lists.
 
-
-          .. seealso::
-
-            :ref:`coretutorial_bind_param`
-
-            :ref:`coretutorial_insert_expressions`
-
-            :func:`.outparam`
-
         :param literal_execute:
           if True, the bound parameter will be rendered in the compile phase
           with a special "POSTCOMPILE" token, and the SQLAlchemy compiler will
@@ -1486,6 +1492,11 @@ class BindParameter(roles.InElementRole, ColumnElement):
             .. seealso::
 
                 :ref:`change_4808`.
+
+        .. seealso::
+
+            :ref:`tutorial_sending_parameters` - in the
+            :ref:`unified_tutorial`
 
         """
         if required is NO_ARG:
@@ -1898,7 +1909,7 @@ class TextClause(
 
         .. seealso::
 
-            :ref:`sqlexpression_text` - in the Core tutorial
+            :ref:`tutorial_select_arbitrary_text`
 
 
         """
@@ -3049,7 +3060,7 @@ class Cast(WrapsColumnExpression, ColumnElement):
 
     .. seealso::
 
-        :ref:`coretutorial_casts`
+        :ref:`tutorial_casts`
 
         :func:`.cast`
 
@@ -3110,7 +3121,7 @@ class Cast(WrapsColumnExpression, ColumnElement):
 
         .. seealso::
 
-            :ref:`coretutorial_casts`
+            :ref:`tutorial_casts`
 
             :func:`.type_coerce` - an alternative to CAST that coerces the type
             on the Python side only, which is often sufficient to generate the
@@ -3231,7 +3242,7 @@ class TypeCoerce(WrapsColumnExpression, ColumnElement):
 
         .. seealso::
 
-            :ref:`coretutorial_casts`
+            :ref:`tutorial_casts`
 
             :func:`.cast`
 
@@ -4873,7 +4884,7 @@ class ColumnClause(
 
             :func:`_expression.text`
 
-            :ref:`sqlexpression_literal_column`
+            :ref:`tutorial_select_arbitrary_text`
 
         """
         self.key = self.name = text

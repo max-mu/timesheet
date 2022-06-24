@@ -511,7 +511,7 @@ class Query(
 
         Here is the `PostgreSQL WITH
         RECURSIVE example
-        <https://www.postgresql.org/docs/8.4/static/queries-with.html>`_.
+        <https://www.postgresql.org/docs/current/static/queries-with.html>`_.
         Note that, in this example, the ``included_parts`` cte and the
         ``incl_alias`` alias of it are Core selectables, which
         means the columns are accessed via the ``.c.`` attribute.  The
@@ -3239,9 +3239,8 @@ class Query(
         :param values: a dictionary with attributes names, or alternatively
          mapped attributes or SQL expressions, as keys, and literal
          values or sql expressions as values.   If :ref:`parameter-ordered
-         mode <updates_order_parameters>` is desired, the values can be
-         passed as a list of 2-tuples;
-         this requires that the
+         mode <tutorial_parameter_ordered_updates>` is desired, the values can
+         be passed as a list of 2-tuples; this requires that the
          :paramref:`~sqlalchemy.sql.expression.update.preserve_parameter_order`
          flag is passed to the :paramref:`.Query.update.update_args` dictionary
          as well.
