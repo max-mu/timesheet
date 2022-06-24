@@ -466,11 +466,10 @@ def hr_employees():
         phone = request.form['phone']
         supv = request.form['supv']
         roles = request.form['roles']
-        if roles == '':
-            roles = 'None'
-        query = "UPDATE employees SET name = '%s', email = '%s', \
-            address='%s', phone = '%s', supv = '%s', roles = '%s' \
-            WHERE id = '%s'"%(name, email, address, phone, supv, roles, id)
+        query = 'UPDATE employees SET name = "%s", email = "%s", \
+            address = "%s" phone = "%s", supv = "%s", roles = "%s" \
+            WHERE id = "%s" '%(name, email, address, phone, supv, roles, 
+            id)
         cur.execute(query)
         conn.commit()
         message = "The employee's information has been edited."
@@ -696,4 +695,4 @@ def internal_server_error(e):
         logged_in=current_user.is_authenticated)
 
 if __name__ == '__main__':
-    app.run()
+    app.run(host='0.0.0.0')
