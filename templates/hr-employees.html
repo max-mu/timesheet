@@ -9,6 +9,7 @@
   <input type="hidden" name="id" value="{{ id }}">
   {{ wtf.form_field(form.name, value=result['name']) }}
   {{ wtf.form_field(form.email, value=result['email']) }}
+  {{ wtf.form_field(form.address, value=result['address']) }}
   {{ wtf.form_field(form.phone, value=result['phone']) }}
   {{ wtf.form_field(form.supv, value=result['supv']) }}
   {{ wtf.form_field(form.roles, value=result['roles']) }}

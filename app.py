@@ -456,12 +456,14 @@ def hr_employees():
     else:
         name = request.form['name']
         email = request.form['email']
+        address = request.form['address']
         phone = request.form['phone']
         supv = request.form['supv']
         roles = request.form['roles']
         query = 'UPDATE employees SET name = "%s", email = "%s", \
-            phone = "%s", supv = "%s", roles = "%s" WHERE id = "%s"\
-            '%(name, email, phone, supv, roles, id)
+            address = "%s" phone = "%s", supv = "%s", roles = "%s" \
+            WHERE id = "%s" '%(name, email, address, phone, supv, roles, 
+            id)
         cur.execute(query)
         conn.commit()
         message = "The employee's information has been edited."
