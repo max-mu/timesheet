@@ -436,7 +436,6 @@ def hr():
                     if message == '':
                         # Displays results in a table in a browser
                         if export_choice == 'browser':
-                            print(results)
                             return render_template('hr-results.html', 
                                 results=results)
                         # Exports results in a CSV
