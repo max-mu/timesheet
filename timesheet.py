@@ -416,7 +416,6 @@ def hr():
                         query = 'SELECT name FROM employees WHERE id = "%s"'%id
                         cur.execute(query)
                         name = cur.fetchone()['name']
-                        print(name)
                         query = 'SELECT * FROM timesheet WHERE name = "%s" \
                             AND date BETWEEN "%s" AND "%s" ORDER BY date'%(name, 
                             begin_conv, end_conv)
