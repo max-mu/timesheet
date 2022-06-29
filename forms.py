@@ -39,14 +39,14 @@ def get_name_choices(type, supv):
     cur = conn.cursor(pymysql.cursors.DictCursor)
     query = ''
     if type == 'hr':
-        query = 'SELECT name FROM employees'
+        query = 'SELECT id, name FROM employees'
     else:
-        query = 'SELECT name FROM employees WHERE supv = \
+        query = 'SELECT id, name FROM employees WHERE supv = \
             "%s"'%(supv)
     cur.execute(query)
     list = cur.fetchall()
     for data in list:
-        choices.append((data['name'], data['name']))
+        choices.append((data['id'], data['name']))
     return choices
 
 # HR Hours Search Form
@@ -59,7 +59,7 @@ class EmployHoursForm(FlaskForm):
 
 # HR Hours Search Form
 class HRGeneralForm(FlaskForm):
-    name = SelectField(label='Name of the employee', 
+    id = SelectField(label='Name of the employee', 
         validators=[InputRequired()], choices=get_name_choices('hr', None))
     date_begin = DateField(label='First date you want your search to contain', 
         format='%Y-%m-%d')
@@ -80,7 +80,7 @@ class HREmployeeForm(FlaskForm):
 
 # Supervisor Hours Search Form
 class SupvHoursForm(FlaskForm):
-    name = SelectField(label='Name of the employee', 
+    id = SelectField(label='Name of the employee', 
         validators=[InputRequired()], choices=[])
     date_begin = DateField(label='First date you want your search to contain', 
         validators=[InputRequired()], format='%Y-%m-%d')
@@ -90,7 +90,7 @@ class SupvHoursForm(FlaskForm):
 
     def __init__(self, supv):
         super(SupvHoursForm, self).__init__()
-        self.name.choices = get_name_choices('supv', supv)
+        self.id.choices = get_name_choices('supv', supv)
 
 
 # Onboarding Form

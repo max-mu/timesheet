@@ -352,8 +352,8 @@ def hr():
     message = ''
     form = HRGeneralForm()
     if request.method == 'POST':
-        name = request.form['name']
-        all_flag = name == 'all'
+        id = request.form['id']
+        all_flag = id == 'all'
         search_edit = request.form['search_edit']
 
         # Edit employee info
@@ -364,7 +364,7 @@ def hr():
             else:
                 conn = mysql.connect()
                 cur = conn.cursor(pymysql.cursors.DictCursor)
-                query = 'SELECT * FROM employees WHERE name = "%s"'%name
+                query = 'SELECT * FROM employees WHERE id = "%s"'%id
                 cur.execute(query)
                 result = cur.fetchone()
                 cur.close()
@@ -413,6 +413,10 @@ def hr():
 
                     # Only one employee was selected
                     else:
+                        query = 'SELECT name FROM employees WHERE id = "%s"'%id
+                        cur.execute(query)
+                        name = cur.fetchone()['name']
+                        print(name)
                         query = 'SELECT * FROM timesheet WHERE name = "%s" \
                             AND date BETWEEN "%s" AND "%s" ORDER BY date'%(name, 
                             begin_conv, end_conv)
@@ -426,7 +430,6 @@ def hr():
                                 to %s. If you were expecting results, please \
                                 double check all fields.'%(name, begin_str, 
                                 end_str)
-
                     # No error messages
                     if message == '':
                         # Displays results in a table in a browser
@@ -480,8 +483,7 @@ def supv():
     message = ''
     form = SupvHoursForm(current_user.name)
     if request.method == 'POST':
-        form = SupvHoursForm(current_user.name)
-        name = request.form['name']
+        id = request.form['id']
         begin_str = request.form['date_begin']
         end_str = request.form['date_end']
         begin_conv = datetime.strptime(begin_str, '%Y-%m-%d').date()
@@ -497,7 +499,7 @@ def supv():
             all_flag = None
 
             # If all employees for the supervisor was selected
-            if name == 'all':
+            if id == 'all':
                 all_flag = True
                 query = 'SELECT timesheet.id, timesheet.name, date, clock_in, \
                     clock_out, pto, hours, approval, supv FROM timesheet INNER \
@@ -517,6 +519,9 @@ def supv():
             # Only one specific employee was selected
             else:
                 all_flag = False
+                query = 'SELECT name FROM employees WHERE id = "%s"'%id
+                cur.execute(query)
+                name = cur.fetchone()['name']
                 query = 'SELECT * FROM timesheet WHERE name = "%s" \
                     AND date BETWEEN "%s" AND "%s" ORDER BY date'%(name, 
                     begin_conv, end_conv)
