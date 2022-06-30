@@ -6,7 +6,9 @@
 <hr>
 <form method="POST" id="EmployHoursForm" action="{{ url_for('hours_adjust') }}">
   {{ form.csrf_token }}
+  <!-- Hidden field for the unique ID associated with the record -->
   <input type="hidden" name="id" value="{{ id }}">
+  <!-- Hidden field for name of the employee that submitted the record -->
   <input type="hidden" name="name" value="{{ name }}">
   {{ wtf.form_field(form.date, value=result['date']) }}
   {{ wtf.form_field(form.clock_in, value=result['clock_in']) }}
@@ -14,6 +16,7 @@
   {{ wtf.form_field(form.pto, value=result['pto']) }}
   {{ wtf.form_field(form.hours, value=result['hours']) }}
   {{ wtf.form_field(form.submit) }}
+  <!-- Hidden fields to redirect and reconstruct the table of records on results pages -->
   <input type="hidden" name="first_date" value="{{ first_date }}">
   <input type="hidden" name="last_date" value="{{ last_date }}">
   <input type="hidden" name="type" value="{{ type }}">
