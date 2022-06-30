@@ -7,7 +7,7 @@
 <p><strong>{{ message }}</strong></p>
 <form method="POST" id="search" action="{{ url_for('supv') }}">
   {{ form.csrf_token }}
-  {{ wtf.form_field(form.id) }}
+  {{ wtf.form_field(form.name) }}
   {{ wtf.form_field(form.date_begin) }}
   {{ wtf.form_field(form.date_end) }}
   {{ wtf.form_field(form.submit) }}

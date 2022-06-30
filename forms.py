@@ -1,10 +1,38 @@
 from wtforms import SubmitField, StringField, PasswordField, DateField, \
-    DecimalField, HiddenField, SelectField, RadioField, IntegerField
+    DecimalField, HiddenField, SelectField
 from flask_wtf import FlaskForm
 from wtforms.validators import InputRequired, EqualTo
 from __init__ import mysql
 from datetime import datetime
 import pymysql
+
+# Generates the list of names of employees for HRGeneralForm and SupvHoursForm
+def get_name_choices(type, supv):
+    choices = [('', ''), ('all', 'All employees')]
+    conn = mysql.connect()
+    cur = conn.cursor(pymysql.cursors.DictCursor)
+    query = ''
+    if type == 'hr':
+        query = 'SELECT name FROM employees'
+    else:
+        query = 'SELECT name FROM employees WHERE supv = \
+            "%s"'%(supv)
+    cur.execute(query)
+    list = cur.fetchall()
+    for data in list:
+        choices.append((data['name'], data['name']))
+    return choices
+
+# Generates the list of supervisors for HREmployeesForm
+def get_supvs():
+    choices = [('', '')]
+    conn = mysql.connect()
+    cur = conn.cursor(pymysql.cursors.DictCursor)
+    query = 'SELECT name FROM employees WHERE roles'
+    cur.execute(query)
+    list = cur.fetchall()
+    for data in list:
+        choices.append((data['name'], data['name']))
 
 # Hours Submission Form
 class HoursForm(FlaskForm):
@@ -32,23 +60,6 @@ class LoginForm(FlaskForm):
     password = PasswordField(label='Password', validators=[InputRequired()])
     login = SubmitField(label='Login')
 
-# Generates the list of names of employees for FetchForm
-def get_name_choices(type, supv):
-    choices = [('', ''), ('all', 'All employees')]
-    conn = mysql.connect()
-    cur = conn.cursor(pymysql.cursors.DictCursor)
-    query = ''
-    if type == 'hr':
-        query = 'SELECT id, name FROM employees'
-    else:
-        query = 'SELECT id, name FROM employees WHERE supv = \
-            "%s"'%(supv)
-    cur.execute(query)
-    list = cur.fetchall()
-    for data in list:
-        choices.append((data['id'], data['name']))
-    return choices
-
 # HR Hours Search Form
 class EmployHoursForm(FlaskForm):
     date_begin = DateField(label='First date you want your search to contain', 
@@ -59,7 +70,7 @@ class EmployHoursForm(FlaskForm):
 
 # HR Hours Search Form
 class HRGeneralForm(FlaskForm):
-    id = SelectField(label='Name of the employee', 
+    name = SelectField(label='Name of the employee', 
         validators=[InputRequired()], choices=get_name_choices('hr', None))
     date_begin = DateField(label='First date you want your search to contain', 
         format='%Y-%m-%d')
@@ -80,7 +91,7 @@ class HREmployeeForm(FlaskForm):
 
 # Supervisor Hours Search Form
 class SupvHoursForm(FlaskForm):
-    id = SelectField(label='Name of the employee', 
+    name = SelectField(label='Name of the employee', 
         validators=[InputRequired()], choices=[])
     date_begin = DateField(label='First date you want your search to contain', 
         validators=[InputRequired()], format='%Y-%m-%d')
@@ -90,7 +101,7 @@ class SupvHoursForm(FlaskForm):
 
     def __init__(self, supv):
         super(SupvHoursForm, self).__init__()
-        self.id.choices = get_name_choices('supv', supv)
+        self.name.choices = get_name_choices('supv', supv)
 
 
 # Onboarding Form
@@ -103,6 +114,4 @@ class OnboardingForm(FlaskForm):
     confirm = PasswordField(label='Confirm Password', validators=[InputRequired()])
     address = StringField(label='Address', validators=[InputRequired()])
     phone = StringField(label='Phone Number', validators=[InputRequired()])
-    supv = StringField(label='Supervisor Name')
-    roles = StringField(label='Roles')
     submit = SubmitField(label='Submit')

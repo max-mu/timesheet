@@ -19,7 +19,7 @@
     <th>Approval Status</th>
   </tr>
   {% for data in results %}
-    {% if first_id==data['id'] %}
+    {% if data['id']==results[0]['id'] %}
       <tr>
         <td class="center-align"><input type="radio" class="radio" name="id" value="{{ data['id'] }}" checked></td>
         <td>{{ data['name'] }}</td>
@@ -30,11 +30,7 @@
         <td>{{ data['hours'] }}</td>
         <td>{{ data['approval'] }}</td>
       </tr>
-      <input type="hidden" name="first_date" value="{{ data['date'] }}">
     {% else %}
-      {% if last_id==data['id'] %}
-        <input type="hidden" name="last_date" value="{{ data['date'] }}">
-      {% endif %}
       <tr>
         <td class="center-align"><input type="radio" class="radio" name="id" value="{{ data['id'] }}"></td>
         <td>{{ data['name'] }}</td>
@@ -48,6 +44,9 @@
     {% endif %}
 {% endfor %}
 </table>
+
+<input type="hidden" name="first_date" value="{{ first_date }}">
+<input type="hidden" name="last_date" value="{{ last_date }}">
 
 <p>Select which entry you would like to edit/remove.</p>
 <p>Note: any entries that are edited will be unapproved.</p>
@@ -63,7 +62,7 @@
 </div>
 </form>
 <hr>
-<p><a href="{{ url_for('hours') }}">Go back to the Employee Hub</a></p>
+<p><a href="{{ url_for('employee') }}">Go back to the Employee Hub</a></p>
 <p><a href="{{ url_for('hours_search') }}">Go back to the Hours Inquiry</a></p>
 <p><a href="{{ url_for('index') }}">Logout and return to the Main Hub</a></p>
 <hr>

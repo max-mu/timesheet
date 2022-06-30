@@ -39,246 +39,18 @@ def on_identity_loaded(sender, identity):
         for n in needs:
             identity.provides.add(n)
 
-# Default route
-@app.route('/')
-def index():
-    message = ''
-    # If the user was logged in when returning, they will be logged out
-    if current_user.is_authenticated:
-        logout_user()
-        for key in ('identity.name', 'identity.auth_type'):
-            session.pop(key, None)
-        identity_changed.send(current_app._get_current_object(),
-            identity=AnonymousIdentity())
-        message = 'You have been logged out.'
-    return render_template('index.html', message=message)
+# Gets the first and last date out of a list of records
+def first_last_date(results):
+    first_date = last_date = None
+    for data in results:
+        if first_date == None or data['date'] < first_date:
+            first_date = data['date']
+        if last_date == None or last_date < data['date']:
+            last_date = data['date']
+    return first_date, last_date
 
-# HR/Supervisor Login route
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    message = ''
-    form = LoginForm()
-    if request.method == 'POST' and form.validate_on_submit():
-        conn = mysql.connect()
-        cur = conn.cursor(pymysql.cursors.DictCursor)
-        email = request.form['email']
-        password = request.form['password']
-        choice = request.form['choice']
-        query = 'SELECT password FROM employees WHERE email = "%s"'%email
-        cur.execute(query)
-        result = cur.fetchone()
-        cur.close()
-        conn.close()
-        not_none = result is not None
-        check_pass = check_password_hash(result['password'], password)
-
-        # Valid login, will be logged in to check permissions
-        if not_none and check_pass:
-            user = Employees.query.filter_by(email=email).first()
-            login_user(user)
-            identity_changed.send(current_app._get_current_object(),
-                    identity=Identity(user.id))
-            try:
-                # In HR
-                if choice == 'hr':
-                    with hr_permission.require():
-                        return redirect( url_for('hr'))
-                # Is a supervisor
-                elif choice == 'supv':
-                    with supv_permission.require():
-                        return redirect( url_for('supv'))
-                # Logging in to submit/adjust hours
-                else:
-                    return redirect( url_for('hours'))
-            # Unauthorized, will be logged out and returned to login screen
-            except PermissionDenied:
-                message = 'You are not authorized to login in as your \
-                    selection. If you meant to submit your hours, go \
-                    back to the main hub and click on the correct link.'
-                logout_user()
-                identity_changed.send(current_app._get_current_object(),
-                    identity=AnonymousIdentity())
-        # Invalid login
-        else:
-            message = 'Invalid email/password.'
-    return render_template('login.html', form=form, message=message)
-
-# Employee Hub route
-@app.route('/hours', methods=['GET', 'POST'])
-@login_required
-def hours():
-    if request.method == 'POST':
-        choice = request.form['choice']
-        if choice == 'submit':
-            return redirect( url_for('hours_submit'))
-        else:
-            return redirect( url_for('hours_search'))
-    return render_template('hours.html', name=current_user.name)
-
-# Hours Sumbission route
-@app.route('/hours-submit', methods=['GET', 'POST'])
-@login_required
-def hours_submit():
-    form = HoursForm()
-    if request.method == 'POST' and form.validate_on_submit():
-        conn = mysql.connect()
-        cur = conn.cursor(pymysql.cursors.DictCursor)
-        name = current_user.name
-        date = request.form['date']
-        clock_in = request.form['clock_in']
-        clock_out = request.form['clock_out']
-        pto = request.form['pto']
-        hours = request.form['hours']
-        approval = 'Not Approved'
-        query = 'INSERT INTO timesheet (name,  date, clock_in, \
-            clock_out, pto, hours, approval) VALUES ("%s", "%s", \
-            "%s", "%s", "%s", "%s", "%s")'%(name, date, clock_in, 
-            clock_out, pto, hours, approval)
-        cur.execute(query)
-        conn.commit()
-        cur.close()
-        conn.close()
-        return render_template('confirm.html', hours=True)
-    return render_template('hours-submit.html', form=form)
-
-# Hours View route
-@app.route('/hours-search', methods=['GET', 'POST'])
-@login_required
-def hours_search():
-    message = ''
-    form = EmployHoursForm()
-    if request.method == 'POST' and form.validate_on_submit():
-        begin_str = request.form['date_begin']
-        end_str = request.form['date_end']
-        begin_conv = datetime.strptime(begin_str, '%Y-%m-%d').date()
-        end_conv = datetime.strptime(end_str, '%Y-%m-%d').date()
-        end_first = (end_conv < begin_conv)
-        
-        # End date is before begin date
-        if end_first:
-            message = 'The end date was before the begin date. \
-                Please double check your dates.'
-        else:
-            conn = mysql.connect()
-            cur = conn.cursor(pymysql.cursors.DictCursor)
-            query = 'SELECT * FROM timesheet WHERE name = "%s" \
-                    AND date BETWEEN "%s" AND "%s" ORDER BY date'%(
-                    current_user.name, begin_conv, end_conv)
-            cur.execute(query)
-            results = cur.fetchall()
-            cur.close()
-            conn.close()
-
-            # No results in the time frame
-            if len(results) == 0:
-                message = 'There were no results from %s \
-                    to %s. If you were expecting results, please \
-                    double check all fields.'%(begin_str, end_str)
-            else:
-                return render_template('hours-results.html', results=results,
-                    message='', first_id=results[0]['id'],
-                    last_id=results[len(results) - 1]['id'])
-
-    return render_template('hours-search.html', form=form, message=message)
-
-# Adjust Hours route, should only be redirected from hours-adjust.html
-# Used for employee and supervisor adjustment forms
-@app.route('/hours-adjust', methods=['POST'])
-@login_required
-def hours_adjust():
-    conn = mysql.connect()
-    cur = conn.cursor(pymysql.cursors.DictCursor)
-    id = request.form['id']
-    name = request.form['name']
-    date = request.form['date']
-    clock_in = request.form['clock_in']
-    clock_out = request.form['clock_out']
-    pto = request.form['pto']
-    hours = request.form['hours']
-    approval = 'Not Approved'
-    first_date = request.form['first_date']
-    last_date = request.form['last_date']
-    type = request.form['type']
-    query = 'UPDATE timesheet SET date = "%s", clock_in = "%s", \
-        clock_out = "%s", pto = "%s", hours = "%s", approval = "%s" \
-        WHERE id = "%s"'%(date, clock_in, clock_out, pto, hours, approval, id)
-    cur.execute(query)
-    conn.commit()
-    if type == 'supv_all':
-        query = 'SELECT timesheet.id, timesheet.name, date, clock_in, \
-            clock_out, pto, hours, approval, supv FROM timesheet INNER \
-            JOIN employees ON employees.name=timesheet.name WHERE supv = \
-            "%s" AND date BETWEEN "%s" AND "%s" ORDER BY name, date'%(
-            current_user.name, first_date, last_date)
-    else:
-        query = 'SELECT * FROM timesheet WHERE name = "%s" AND date BETWEEN \
-            "%s" AND "%s" ORDER BY date'%(name, first_date, last_date)
-    cur.execute(query)
-    results = cur.fetchall()
-    cur.close()
-    conn.close()
-    message = 'The entry has been updated and unapproved.'
-
-    # Gets redirected to employee search results
-    if type == 'employ':
-        return render_template('hours-results.html', results=results, 
-            message=message, first_id=results[0]['id'], 
-            last_id=results[len(results) - 1]['id'])
-
-    # Redirected to supverisor search results, only one employee searched
-    elif type == 'supv':
-        return render_template('supv-results.html', results=results, 
-            message=message, first_id=results[0]['id'], 
-            last_id=results[len(results) - 1]['id'], all_flag=False)
-
-    # Redirected to supverisor search results, all employees searched
-    else:
-        return render_template('supv-results.html', results=results, 
-            message=message, first_id=results[0]['id'], 
-            last_id=results[len(results) - 1]['id'], all_flag=True)
-
-# Hours Edit or Remove route
-@app.route('/edit-or-remove', methods=['GET', 'POST'])
-@login_required
-def edit_or_remove():
-    conn = mysql.connect()
-    cur = conn.cursor(pymysql.cursors.DictCursor)
-    choice = request.form['choice']
-    id = request.form['id']
-    first_date = request.form['first_date']
-    last_date = request.form['last_date']
-
-    # Action was edit
-    if choice == 'edit':
-        query = 'SELECT * FROM timesheet WHERE id = "%s"'%id
-        cur.execute(query)
-        result = cur.fetchone()
-        cur.close()
-        conn.close()
-        form = HoursForm()
-        return render_template('hours-adjust.html', result=result, name=current_user.name,
-            id=id,first_date=first_date, last_date=last_date, form=form, 
-            type='employ')
-
-    # Action was delete
-    else:
-        query = 'DELETE FROM timesheet WHERE id = "%s"'%id
-        cur.execute(query)
-        conn.commit()
-        query = 'SELECT * FROM timesheet WHERE name = "%s" AND date BETWEEN \
-            "%s" AND "%s" ORDER BY date'%(current_user.name, first_date, 
-            last_date)
-        cur.execute(query)
-        results = cur.fetchall()
-        cur.close()
-        conn.close()
-        message = 'The entry has been deleted.'
-        return render_template('hours-results.html', results=results, 
-            message=message, first_id=results[0]['id'], 
-            last_id=results[len(results) - 1]['id'])
-
-# Generates the CSV for HR
-def generate_csv(results, name, begin_str, end_str):
+    # Generates the CSV for HR
+def generate_csv(results, name, date_begin, date_end):
     def generate():
         data = StringIO()
         w = csv.writer(data)
@@ -341,9 +113,244 @@ def generate_csv(results, name, begin_str, end_str):
         data.truncate(0)
     response = Response(generate(), mimetype='text/csv')
     response.headers.set('Content-Disposition', 'attachment', 
-        filename='"%s"_"%s"_"%s".csv'%(name, begin_str,
-        end_str))
+        filename='"%s"_"%s"_"%s".csv'%(name, date_begin,
+        date_end))
     return response
+
+# Default route
+@app.route('/')
+def index():
+    message = ''
+    # If the user was logged in when returning, they will be logged out
+    if current_user.is_authenticated:
+        logout_user()
+        for key in ('identity.name', 'identity.auth_type'):
+            session.pop(key, None)
+        identity_changed.send(current_app._get_current_object(),
+            identity=AnonymousIdentity())
+        message = 'You have been logged out.'
+    return render_template('index.html', message=message)
+
+# Login route
+# Login for employees, supervisors, and HR
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    message = ''
+    form = LoginForm()
+    if request.method == 'POST' and form.validate_on_submit():
+        conn = mysql.connect()
+        cur = conn.cursor(pymysql.cursors.DictCursor)
+        email = request.form['email']
+        password = request.form['password']
+        choice = request.form['choice']
+        query = 'SELECT password FROM employees WHERE email = "%s"'%email
+        cur.execute(query)
+        result = cur.fetchone()
+        cur.close()
+        conn.close()
+        not_none = result is not None
+        check_pass = check_password_hash(result['password'], password)
+
+        # Valid login, will be logged in to check permissions
+        if not_none and check_pass:
+            user = Employees.query.filter_by(email=email).first()
+            login_user(user)
+            identity_changed.send(current_app._get_current_object(),
+                    identity=Identity(user.id))
+            try:
+                # In HR
+                if choice == 'hr':
+                    with hr_permission.require():
+                        return redirect( url_for('hr'))
+                # Is a supervisor
+                elif choice == 'supv':
+                    with supv_permission.require():
+                        return redirect( url_for('supv'))
+                # Logging in to submit/adjust hours
+                else:
+                    return redirect( url_for('employee'))
+            # Unauthorized, will be logged out and returned to login screen
+            except PermissionDenied:
+                message = 'You are not authorized to login in as your \
+                    selection. If you meant to submit your hours, go \
+                    back to the main hub and click on the correct link.'
+                logout_user()
+                identity_changed.send(current_app._get_current_object(),
+                    identity=AnonymousIdentity())
+        # Invalid login
+        else:
+            message = 'Invalid email/password.'
+    return render_template('login.html', form=form, message=message)
+
+# Employee Hub route
+@app.route('/employee', methods=['GET', 'POST'])
+@login_required
+def employee():
+    if request.method == 'POST':
+        choice = request.form['choice']
+        if choice == 'submit':
+            return redirect( url_for('hours_submit'))
+        else:
+            return redirect( url_for('hours_search'))
+    return render_template('employee.html', name=current_user.name)
+
+# Hours Sumbission route
+@app.route('/hours-submit', methods=['GET', 'POST'])
+@login_required
+def hours_submit():
+    form = HoursForm()
+    if request.method == 'POST' and form.validate_on_submit():
+        conn = mysql.connect()
+        cur = conn.cursor(pymysql.cursors.DictCursor)
+        name = current_user.name
+        date = request.form['date']
+        clock_in = request.form['clock_in']
+        clock_out = request.form['clock_out']
+        pto = request.form['pto']
+        hours = request.form['hours']
+        approval = 'Not Approved'
+        query = 'INSERT INTO timesheet (name,  date, clock_in, \
+            clock_out, pto, hours, approval) VALUES ("%s", "%s", \
+            "%s", "%s", "%s", "%s", "%s")'%(name, date, clock_in, 
+            clock_out, pto, hours, approval)
+        cur.execute(query)
+        conn.commit()
+        cur.close()
+        conn.close()
+        return render_template('confirm.html', hours=True)
+    return render_template('hours-submit.html', form=form)
+
+# Hours View route
+@app.route('/hours-search', methods=['GET', 'POST'])
+@login_required
+def hours_search():
+    message = ''
+    form = EmployHoursForm()
+    if request.method == 'POST' and form.validate_on_submit():
+        date_begin = request.form['date_begin']
+        date_end = request.form['date_end']
+        end_first = (date_end < date_begin)
+        # End date is before begin date
+        if end_first:
+            message = 'The end date was before the begin date. \
+                Please double check your dates.'
+        else:
+            conn = mysql.connect()
+            cur = conn.cursor(pymysql.cursors.DictCursor)
+            query = 'SELECT * FROM timesheet WHERE name = "%s" \
+                    AND date BETWEEN "%s" AND "%s" ORDER BY date'%(
+                    current_user.name, date_begin, date_end)
+            cur.execute(query)
+            results = cur.fetchall()
+            cur.close()
+            conn.close()
+
+            # No results in the time frame
+            if len(results) == 0:
+                message = 'There were no results from %s \
+                    to %s. If you were expecting results, please \
+                    double check all fields.'%(date_begin, date_end)
+            else:
+                first_date, last_date = first_last_date(results)
+                return render_template('hours-results.html', results=results,
+                    message='', first_date=first_date, last_date=last_date)
+
+    return render_template('hours-search.html', form=form, message=message)
+
+# Adjust Hours route, should only be redirected from hours-adjust.html
+# Used for employee and supervisor adjustment forms
+@app.route('/hours-adjust', methods=['POST'])
+@login_required
+def hours_adjust():
+    conn = mysql.connect()
+    cur = conn.cursor(pymysql.cursors.DictCursor)
+    id = request.form['id']
+    name = request.form['name']
+    date = request.form['date']
+    clock_in = request.form['clock_in']
+    clock_out = request.form['clock_out']
+    pto = request.form['pto']
+    hours = request.form['hours']
+    approval = 'Not Approved'
+    first_date = request.form['first_date']
+    last_date = request.form['last_date']
+    type = request.form['type']
+    query = 'UPDATE timesheet SET date = "%s", clock_in = "%s", \
+        clock_out = "%s", pto = "%s", hours = "%s", approval = "%s" \
+        WHERE id = "%s"'%(date, clock_in, clock_out, pto, hours, approval, id)
+    cur.execute(query)
+    conn.commit()
+    if type == 'supv_all':
+        query = 'SELECT timesheet.id, timesheet.name, date, clock_in, \
+            clock_out, pto, hours, approval, supv FROM timesheet INNER \
+            JOIN employees ON employees.name=timesheet.name WHERE supv = \
+            "%s" AND date BETWEEN "%s" AND "%s" ORDER BY name, date'%(
+            current_user.name, first_date, last_date)
+    else:
+        query = 'SELECT * FROM timesheet WHERE name = "%s" AND date BETWEEN \
+            "%s" AND "%s" ORDER BY date'%(name, first_date, last_date)
+    cur.execute(query)
+    results = cur.fetchall()
+    cur.close()
+    conn.close()
+    message = 'The entry has been updated and unapproved.'
+
+    # Gets redirected to employee search results
+    if type == 'employ':
+        return render_template('hours-results.html', results=results, 
+            message=message, first_date=first_date, last_date=last_date)
+
+    # Redirected to supverisor search results, only one employee searched
+    elif type == 'supv':
+        return render_template('supv-results.html', results=results, 
+            message=message, first_date=first_date, last_date=last_date, 
+            all_flag=False)
+
+    # Redirected to supverisor search results, all employees searched
+    else:
+        return render_template('supv-results.html', results=results, 
+            message=message, first_date=first_date, last_date=last_date, 
+            all_flag=True)
+
+# Hours Edit or Remove route
+@app.route('/edit-or-remove', methods=['POST'])
+@login_required
+def edit_or_remove():
+    conn = mysql.connect()
+    cur = conn.cursor(pymysql.cursors.DictCursor)
+    choice = request.form['choice']
+    id = request.form['id']
+    first_date = request.form['first_date']
+    last_date = request.form['last_date']
+
+    # Action was edit
+    if choice == 'edit':
+        query = 'SELECT * FROM timesheet WHERE id = "%s"'%id
+        cur.execute(query)
+        result = cur.fetchone()
+        cur.close()
+        conn.close()
+        form = HoursForm()
+        return render_template('hours-adjust.html', result=result, 
+            name=current_user.name, id=id,first_date=first_date, last_date=last_date, 
+            form=form, type='employ')
+
+    # Action was delete
+    else:
+        query = 'DELETE FROM timesheet WHERE id = "%s"'%id
+        cur.execute(query)
+        conn.commit()
+        query = 'SELECT * FROM timesheet WHERE name = "%s" AND date BETWEEN \
+            "%s" AND "%s" ORDER BY date'%(current_user.name, first_date, 
+            last_date)
+        cur.execute(query)
+        results = cur.fetchall()
+        cur.close()
+        conn.close()
+        message = 'The entry has been deleted.'
+        first_date, last_date = first_last_date(results)
+        return render_template('hours-results.html', results=results, 
+            message=message, first_date=first_date, last_date=last_date)
 
 # HR Hub route
 @app.route('/hr', methods=['GET', 'POST'])
@@ -352,8 +359,8 @@ def hr():
     message = ''
     form = HRGeneralForm()
     if request.method == 'POST':
-        id = request.form['id']
-        all_flag = id == 'all'
+        name = request.form['name']
+        all_flag = name == 'all'
         search_edit = request.form['search_edit']
 
         # Edit employee info
@@ -364,7 +371,7 @@ def hr():
             else:
                 conn = mysql.connect()
                 cur = conn.cursor(pymysql.cursors.DictCursor)
-                query = 'SELECT * FROM employees WHERE id = "%s"'%id
+                query = 'SELECT * FROM employees WHERE name = "%s"'%name
                 cur.execute(query)
                 result = cur.fetchone()
                 cur.close()
@@ -375,23 +382,22 @@ def hr():
 
         # Search timesheet
         else:
-            begin_str = request.form['date_begin']
-            end_str = request.form['date_end']
+            date_begin = request.form['date_begin']
+            date_end = request.form['date_end']
             # Begin and end date fields must be filled out
-            if begin_str == '' or end_str == '':
+            if date_begin == '' or date_end == '':
                 message = 'You must fill out the rest of this form if you are \
                     searching the timesheet.'
             else:
                 export_choice = request.form['export_choice']
-                begin_conv = datetime.strptime(begin_str, '%Y-%m-%d').date()
-                end_conv = datetime.strptime(end_str, '%Y-%m-%d').date()
-                end_first = (end_conv < begin_conv)
+                end_first = (date_end < date_begin)
 
                 # End date is before begin date
                 if end_first:
                     message = 'The end date was before the begin date. \
                         Please double check your dates.'
                 else:
+                    name = 'all' # Will get renamed if one employee was selected
                     conn = mysql.connect()
                     cur = conn.cursor(pymysql.cursors.DictCursor)
                     results = ()
@@ -399,8 +405,8 @@ def hr():
                     # If all employees were selected
                     if all_flag:
                         query = 'SELECT * FROM timesheet WHERE date BETWEEN \
-                            "%s" AND "%s" ORDER BY name, date'%(begin_conv, 
-                            end_conv)
+                            "%s" AND "%s" ORDER BY name, date'%(date_begin, 
+                            date_end)
                         cur.execute(query)
                         results = cur.fetchall()
                         cur.close()
@@ -409,16 +415,13 @@ def hr():
                         if len(results) == 0:
                             message = 'There were no results from %s \
                                 to %s. If you were expecting results, please \
-                                double check all fields.'%(begin_str, end_str)
+                                double check all fields.'%(date_begin, date_end)
 
                     # Only one employee was selected
                     else:
-                        query = 'SELECT name FROM employees WHERE id = "%s"'%id
-                        cur.execute(query)
-                        name = cur.fetchone()['name']
                         query = 'SELECT * FROM timesheet WHERE name = "%s" \
                             AND date BETWEEN "%s" AND "%s" ORDER BY date'%(name, 
-                            begin_conv, end_conv)
+                            date_begin, date_end)
                         cur.execute(query)
                         results = cur.fetchall()
                         cur.close()
@@ -427,8 +430,8 @@ def hr():
                         if len(results) == 0:
                             message = 'There were no results for %s from %s \
                                 to %s. If you were expecting results, please \
-                                double check all fields.'%(name, begin_str, 
-                                end_str)
+                                double check all fields.'%(name, date_begin, 
+                                date_end)
                     # No error messages
                     if message == '':
                         # Displays results in a table in a browser
@@ -437,8 +440,8 @@ def hr():
                                 results=results)
                         # Exports results in a CSV
                         else:
-                            return generate_csv(results, name, begin_str, 
-                                end_str)
+                            return generate_csv(results, name, date_begin, 
+                                date_end)
 
     return render_template('hr.html', form=form, message=message)
 
@@ -482,12 +485,10 @@ def supv():
     message = ''
     form = SupvHoursForm(current_user.name)
     if request.method == 'POST':
-        id = request.form['id']
-        begin_str = request.form['date_begin']
-        end_str = request.form['date_end']
-        begin_conv = datetime.strptime(begin_str, '%Y-%m-%d').date()
-        end_conv = datetime.strptime(end_str, '%Y-%m-%d').date()
-        end_first = (end_conv < begin_conv)
+        name = request.form['name']
+        date_begin = request.form['date_begin']
+        date_end = request.form['date_end']
+        end_first = (date_end < date_begin)
         # End date is before begin date
         if end_first:
             message = 'The end date was before the begin date. \
@@ -498,13 +499,13 @@ def supv():
             all_flag = None
 
             # If all employees for the supervisor was selected
-            if id == 'all':
+            if name == 'all':
                 all_flag = True
                 query = 'SELECT timesheet.id, timesheet.name, date, clock_in, \
                     clock_out, pto, hours, approval, supv FROM timesheet INNER \
                     JOIN employees ON employees.name=timesheet.name WHERE supv = \
                     "%s" AND date BETWEEN "%s" AND "%s" ORDER BY name, date'%(
-                    current_user.name, begin_conv, end_conv)
+                    current_user.name, date_begin, date_end)
                 cur.execute(query)
                 results = cur.fetchall()
                 cur.close()
@@ -513,17 +514,14 @@ def supv():
                 if len(results) == 0:
                     message = 'There were no results from %s \
                         to %s. If you were expecting results, please \
-                        double check all fields.'%(begin_str, end_str)
+                        double check all fields.'%(date_begin, date_end)
 
             # Only one specific employee was selected
             else:
                 all_flag = False
-                query = 'SELECT name FROM employees WHERE id = "%s"'%id
-                cur.execute(query)
-                name = cur.fetchone()['name']
                 query = 'SELECT * FROM timesheet WHERE name = "%s" \
                     AND date BETWEEN "%s" AND "%s" ORDER BY date'%(name, 
-                    begin_conv, end_conv)
+                    date_begin, date_end)
                 cur.execute(query)
                 results = cur.fetchall()
                 cur.close()
@@ -532,13 +530,14 @@ def supv():
                 if len(results) == 0:
                     message = 'There were no results for %s from %s \
                         to %s. If you were expecting results, please \
-                        double check all fields.'%(name, begin_str, end_str)
+                        double check all fields.'%(name, date_begin, date_end)
 
             # If there are no error messages
             if message == '':
+                first_date, last_date = first_last_date(results)
                 return render_template('supv-results.html', results=results,
-                    message=message, first_id=results[0]['id'], 
-                    last_id=results[len(results)-1]['id'], all_flag=all_flag)
+                    message=message, first_date=first_date, last_date=last_date, 
+                    all_flag=all_flag)
 
     return render_template('supv.html', form=form, message=message)
 
@@ -555,6 +554,7 @@ def supv_results():
     all_flag = request.form['all_flag']
     message = ''
     last_query = ''
+    # last_query will be used if redirected to supv-results.html
     if all_flag:
         last_query = 'SELECT timesheet.id, timesheet.name, date, clock_in, \
             clock_out, pto, hours, approval, supv FROM timesheet INNER \
@@ -574,9 +574,10 @@ def supv_results():
             entry before proceeding.'
         cur.close()
         conn.close()
+        first_date, last_date = first_last_date(results)
         return render_template('supv-results.html', results=results, 
-            message=message, first_id=results[0]['id'], 
-            last_id=results[len(results)-1]['id'], all_flag=all_flag)
+            message=message, first_date=first_date, last_date=last_date, 
+            all_flag=all_flag)
 
     choice = request.form['choice']
     # Action is edit
@@ -585,6 +586,7 @@ def supv_results():
         if len(list) > 1:
             message = 'You can only edit one entry at a time.'
         else:
+            # Not redirected to supv-results, so last_query will not be used
             id = list[0]
             query = 'SELECT * FROM timesheet WHERE id = "%s"'%id
             cur.execute(query)
@@ -592,6 +594,7 @@ def supv_results():
             cur.close()
             conn.close()
             form = HoursForm()
+            first_date, last_date = first_last_date(results)
             if all_flag:
                 return render_template('hours-adjust.html', result=result, 
                     name=name, id=id, first_date=first_date, 
@@ -631,9 +634,10 @@ def supv_results():
     results = cur.fetchall()
     cur.close()
     conn.close()
+    first_date, last_date = first_last_date(results)
     return render_template('supv-results.html', results=results, 
-        message=message, first_id=results[0]['id'], 
-        last_id=results[len(results)-1]['id'], all_flag=all_flag)
+        message=message, first_date=first_date, last_date=last_date, 
+        all_flag=all_flag)
 
 # Onboarding route
 @app.route('/onboarding', methods=['GET', 'POST'])
@@ -648,12 +652,9 @@ def onboarding():
         password = generate_password_hash(request.form['password'])
         address = request.form['address']
         phone = request.form['phone']
-        supv = request.form['supv']
-        roles = request.form['roles']
         query = 'INSERT INTO employees (name, email, password, \
-            address, phone, supv, roles) VALUES \
-            ("%s", "%s", "%s", "%s", "%s", "%s", "%s")'%(name, 
-            email,  password, address, phone, supv, roles)
+            address, phone) VALUES ("%s", "%s", "%s", "%s", "%s", \
+            "%s", "%s")'%(name, email,  password, address, phone)
         cur.execute(query)
         conn.commit()
         cur.close()

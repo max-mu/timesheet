@@ -6,7 +6,7 @@
 <p><strong>Your form has been submitted!</strong></p>
 <hr>
 {% if hours==True %}
-    <p><a href="{{ url_for('hours') }}">Return to the Employee Hub</a></p>
+    <p><a href="{{ url_for('employee') }}">Return to the Employee Hub</a></p>
     <p><a href="{{ url_for('index') }}">Logout and return to the Main Hub</a></p>
 {% else %}
     <p><a href="{{ url_for('index') }}">Go back to the Main Hub</a></p>
