@@ -13,10 +13,10 @@ def get_name_choices(type, supv):
     cur = conn.cursor(pymysql.cursors.DictCursor)
     query = ''
     if type == 'hr':
-        query = 'SELECT name FROM employees'
+        query = 'SELECT name FROM employees ORDER BY name'
     else:
         query = 'SELECT name FROM employees WHERE supv = \
-            "%s"'%(supv)
+            "%s" OR name = "%s" ORDER BY name'%(supv, supv)
     cur.execute(query)
     list = cur.fetchall()
     for data in list:
@@ -25,22 +25,25 @@ def get_name_choices(type, supv):
 
 # Generates the list of supervisors for HREmployeesForm
 def get_supvs():
-    choices = [('', '')]
+    choices = [('none', 'None')]
     conn = mysql.connect()
     cur = conn.cursor(pymysql.cursors.DictCursor)
-    query = 'SELECT name FROM employees WHERE roles'
+    query = 'SELECT name FROM employees WHERE roles = "supv" \
+        ORDER BY name'
     cur.execute(query)
     list = cur.fetchall()
     for data in list:
         choices.append((data['name'], data['name']))
+    return choices
 
 # Hours Submission Form
 class HoursForm(FlaskForm):
     id = HiddenField()
     date = DateField(label='Date', 
         validators=[InputRequired()], format='%Y-%m-%d', default=datetime.now())
-    clock_in = StringField(label='Clock In', validators=[InputRequired()])
-    clock_out = StringField(label='Clock Out', validators=[InputRequired()])
+    date_conv = HiddenField() # Formatted as %m-%d-%Y
+    clock_in = StringField(label='Clock In')
+    clock_out = StringField(label='Clock Out')
     pto = DecimalField(label='Holiday/Paid Time Off', 
         validators=[InputRequired()], default=0)
     hours = DecimalField(label='Total Hours', validators=[InputRequired()])
@@ -71,12 +74,17 @@ class EmployHoursForm(FlaskForm):
 # HR Hours Search Form
 class HRGeneralForm(FlaskForm):
     name = SelectField(label='Name of the employee', 
-        validators=[InputRequired()], choices=get_name_choices('hr', None))
+        validators=[InputRequired()], choices=[])
     date_begin = DateField(label='First date you want your search to contain', 
         format='%Y-%m-%d')
     date_end = DateField(label='Last date you want your search to contain', 
         format='%Y-%m-%d')
     submit = SubmitField(label='Submit')
+
+    def __init__(self, *args, **kwargs):
+        super(HRGeneralForm, self).__init__(*args, **kwargs)
+        self.name.choices=get_name_choices('hr', None)
+
 
 # HR Employees Form
 class HREmployeeForm(FlaskForm):
@@ -84,10 +92,14 @@ class HREmployeeForm(FlaskForm):
     email = StringField(label='Email', validators=[InputRequired()])
     address = StringField(label='Address', validators=[InputRequired()])
     phone = StringField(label='Phone Number', validators=[InputRequired()])
-    supv = StringField(label='Supervisor Name (leave blank if none)')
-    roles = SelectField(label='Roles (leave blank if none)', 
-        choices=[('', ''), ('hr', 'HR'), ('supv', 'Supervisor')])
+    supv = SelectField(label='Supervisor Name', choices=[])
+    roles = SelectField(label='Roles', 
+        choices=[('none', 'None'), ('hr', 'HR'), ('supv', 'Supervisor')])
     submit = SubmitField(label='Submit')
+
+    def __init__(self, *args, **kwargs):
+        super(HREmployeeForm, self).__init__(*args, **kwargs)
+        self.supv.choices=get_supvs()
 
 # Supervisor Hours Search Form
 class SupvHoursForm(FlaskForm):

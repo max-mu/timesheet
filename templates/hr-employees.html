@@ -6,13 +6,13 @@
 <hr>
 <form method="POST" id="EmployHoursForm" action="{{ url_for('hr_employees') }}">
   {{ form.csrf_token }}
-  <input type="hidden" name="id" value="{{ id }}">
+  <input type="hidden" name="id" value="{{ result['id'] }}">
   {{ wtf.form_field(form.name, value=result['name']) }}
   {{ wtf.form_field(form.email, value=result['email']) }}
   {{ wtf.form_field(form.address, value=result['address']) }}
   {{ wtf.form_field(form.phone, value=result['phone']) }}
-  {{ wtf.form_field(form.supv, value=result['supv']) }}
-  {{ wtf.form_field(form.roles, value=result['roles']) }}
+  {{ wtf.form_field(form.supv) }}
+  {{ wtf.form_field(form.roles) }}
   <div class="form-check form-check-inline">
     <label class="form-check-label"><input class="form-check-input" type="radio" name="choice" value="edit" checked> Edit with these changes</label>
   </div>
