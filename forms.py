@@ -38,16 +38,13 @@ def get_supvs():
 
 # Hours Submission Form
 class HoursForm(FlaskForm):
-    id = HiddenField()
     date = DateField(label='Date', 
         validators=[InputRequired()], format='%Y-%m-%d', default=datetime.now())
-    date_conv = HiddenField() # Formatted as %m-%d-%Y
     clock_in = StringField(label='Clock In')
     clock_out = StringField(label='Clock Out')
     pto = DecimalField(label='Holiday/Paid Time Off', 
         validators=[InputRequired()], default=0)
     hours = DecimalField(label='Total Hours', validators=[InputRequired()])
-    approved = HiddenField()
     submit = SubmitField(label='Submit')
     # Next two fields are to handle restoring the 'hours search' table 
     # in hours-results.html, not used in initial submission
@@ -118,7 +115,6 @@ class SupvHoursForm(FlaskForm):
 
 # Onboarding Form
 class OnboardingForm(FlaskForm):
-    id = HiddenField()
     name = StringField(label='Name', validators=[InputRequired()])
     email = StringField(label='Email', validators=[InputRequired()])
     password = PasswordField(label='Password', validators=[InputRequired(), 
