@@ -7,7 +7,7 @@
 <p><strong>{{ message }}</strong></p>
   <form method="POST" id="search" action="{{ url_for('hr') }}">
     {{ form.csrf_token }}
-    {{ wtf.form_field(form.name) }}
+    {{ wtf.form_field(form.employ_id) }}
     <div class="form-check form-check-inline">
       <label class="form-check-label"><input class="form-check-input" type="radio" name="search_edit" value="search" checked> Search the timesheet</label>
     </div>

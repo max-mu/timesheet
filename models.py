@@ -10,17 +10,18 @@ class Employees(db.Model, UserMixin):
     password = db.Column(db.String)
     address = db.Column(db.String)
     phone = db.Column(db.String)
-    supv = db.Column(db.String)
+    supv_id = db.Column(db.Integer)
     roles = db.Column(db.String)
 
     def __init__(self, name, email, password, 
-        address, phone, supv, roles):
+        address, phone, supv_id, roles):
+
         self.name = name
         self.email = email
         self.password = password
         self.address = address
         self.phone = phone
-        self.supv = supv
+        self.supv_id = supv_id
         self.roles = roles
     
     def get_id(self):
@@ -31,6 +32,7 @@ class Timesheet(db.Model):
     __tablename__ = "timesheet"
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
+    employ_id = db.Column(db.Integer)
     date = db.Column(db.String)
     date_conv = db.Column(db.String)
     clock_in = db.Column(db.String)
@@ -39,8 +41,11 @@ class Timesheet(db.Model):
     hours = db.Column(db.Float)
     approval = db.Column(db.String)
 
-    def __init__(self, name, date, date_conv, clock_in, clock_out, pto, hours, approval):
+    def __init__(self, name, employ_id, date, date_conv, 
+        clock_in, clock_out, pto, hours, approval):
+
         self.name = name
+        self.employ_id = employ_id
         self.date = date
         self.date_conv = date_conv
         self.hours = hours

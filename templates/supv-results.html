@@ -57,10 +57,13 @@
 {% endfor %}
 </table>
 
+<!-- Used for reconstructing the table later -->
 <input type="hidden" name="first_date" value="{{ first_date }}">
-<input type="hidden" name="name" value="{{ results[0]['name'] }}">
-<input type="hidden" name="all_flag" value="{{ all_flag }}">
 <input type="hidden" name="last_date" value="{{ last_date }}">
+<!-- True if all employees was selected, false otherwise -->
+<input type="hidden" name="all_flag" value="{{ all_flag }}">
+<!-- Takes the employ_id of the first entry, will not be used if all_flag = True -->
+<input type="hidden" name="employ_id" value="{{ results[0]['employ_id'] }}">
 
 <p>Select what entries you would like to adjust above.</p>
 <p>Note: any entries that are edited will be unapproved.</p>
