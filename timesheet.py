@@ -300,9 +300,10 @@ def hours_adjust():
     type = request.form['type']
     if type == 'supv_all':
         query = 'SELECT timesheet.*, supv_id FROM timesheet INNER \
-            JOIN employees ON employees.id=timesheet.employ_id WHERE supv_id \
-            = "%s" AND date BETWEEN "%s" AND "%s" ORDER BY name, date'%(
-            current_user.id, first_date, last_date)
+            JOIN employees ON employees.id=timesheet.employ_id WHERE \
+            (supv_id = "%s" OR id = "%s") AND (date BETWEEN "%s" AND \
+            "%s") ORDER BY name, date'%(current_user.id, current_user.id, 
+            first_date, last_date)
     else:
         query = 'SELECT * FROM timesheet WHERE employ_id = "%s" AND date BETWEEN \
             "%s" AND "%s" ORDER BY date'%(employ_id, first_date, last_date)
@@ -559,8 +560,9 @@ def supv():
             if all_flag:
                 query = 'SELECT timesheet.*, supv_id FROM timesheet INNER \
                     JOIN employees ON employees.id=timesheet.employ_id WHERE \
-                    supv_id = "%s" AND date BETWEEN "%s" AND "%s" ORDER BY name, \
-                    date'%(current_user.id, date_begin, date_end)
+                    (supv_id = "%s" OR id = "%s") AND (date BETWEEN "%s" AND \
+                    "%s") ORDER BY name, date'%(current_user.id, current_user.id, 
+                    date_begin, date_end)
                 cur.execute(query)
                 results = cur.fetchall()
                 cur.close()
@@ -622,9 +624,10 @@ def supv_results():
     # last_query will be used if redirected to supv-results.html
     if all_flag:
         last_query = 'SELECT timesheet.*, supv_id FROM timesheet INNER \
-            JOIN employees ON employees.id=timesheet.employ_id WHERE supv_id \
-            = "%s" AND date BETWEEN "%s" AND "%s" ORDER BY name, date'%(
-            current_user.id, first_date, last_date)
+            JOIN employees ON employees.id=timesheet.employ_id WHERE \
+            (supv_id = "%s" OR id = "%s") AND (date BETWEEN "%s" AND \
+            "%s") ORDER BY name, date'%(current_user.id, current_user.id, 
+            first_date, last_date)
     else:
         last_query = 'SELECT * FROM timesheet WHERE employ_id = "%s" AND date BETWEEN \
             "%s" AND "%s" ORDER BY name, date'%(employ_id, first_date,
