@@ -301,7 +301,7 @@ def hours_adjust():
     if type == 'supv_all':
         query = 'SELECT timesheet.*, supv_id FROM timesheet INNER \
             JOIN employees ON employees.id=timesheet.employ_id WHERE \
-            (supv_id = "%s" OR id = "%s") AND (date BETWEEN "%s" AND \
+            (supv_id = "%s" OR employ_id = "%s") AND (date BETWEEN "%s" AND \
             "%s") ORDER BY name, date'%(current_user.id, current_user.id, 
             first_date, last_date)
     else:
@@ -560,8 +560,8 @@ def supv():
             if all_flag:
                 query = 'SELECT timesheet.*, supv_id FROM timesheet INNER \
                     JOIN employees ON employees.id=timesheet.employ_id WHERE \
-                    (supv_id = "%s" OR id = "%s") AND (date BETWEEN "%s" AND \
-                    "%s") ORDER BY name, date'%(current_user.id, current_user.id, 
+                    (supv_id = "%s" OR employ_id = "%s") AND (date BETWEEN "%s" \
+                    AND "%s") ORDER BY name, date'%(current_user.id, current_user.id, 
                     date_begin, date_end)
                 cur.execute(query)
                 results = cur.fetchall()
@@ -625,7 +625,7 @@ def supv_results():
     if all_flag:
         last_query = 'SELECT timesheet.*, supv_id FROM timesheet INNER \
             JOIN employees ON employees.id=timesheet.employ_id WHERE \
-            (supv_id = "%s" OR id = "%s") AND (date BETWEEN "%s" AND \
+            (supv_id = "%s" OR employ_id = "%s") AND (date BETWEEN "%s" AND \
             "%s") ORDER BY name, date'%(current_user.id, current_user.id, 
             first_date, last_date)
     else:
