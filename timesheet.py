@@ -10,7 +10,7 @@ from forms import HREmployeeForm, HoursForm, LoginForm, HRGeneralForm, SupvForm,
     OnboardingForm, EmployHoursForm
 from models import Employees
 from io import StringIO
-from datetime import datetime
+from datetime import datetime, timedelta
 import csv
 import pymysql
 
@@ -132,7 +132,6 @@ def generate_csv(results, name, date_begin, date_end):
 # Default route
 @app.route('/')
 def index():
-    message = ''
     # If the user was logged in when returning, they will be logged out
     if current_user.is_authenticated:
         logout_user()
@@ -140,8 +139,7 @@ def index():
             session.pop(key, None)
         identity_changed.send(current_app._get_current_object(),
             identity=AnonymousIdentity())
-        message = 'You have been logged out.'
-    return render_template('index.html', message=message)
+    return render_template('index.html')
 
 # Login route
 @app.route('/login', methods=['GET', 'POST'])
@@ -170,13 +168,19 @@ def login():
                 # In HR
                 if choice == 'hr':
                     with hr_permission.require():
+                        session.permanent = True
+                        app.permanent_session_lifetime = timedelta(hours = 16)
                         return redirect( url_for('hr'))
                 # Is a supervisor
                 elif choice == 'supv':
                     with supv_permission.require():
+                        session.permanent = True
+                        app.permanent_session_lifetime = timedelta(hours = 16)
                         return redirect( url_for('supv'))
                 # Logging in to submit/adjust hours
                 else:
+                    session.permanent = True
+                    app.permanent_session_lifetime = timedelta(hours = 16)
                     return redirect( url_for('employee'))
             # Unauthorized, will be logged out and returned to login screen
             except PermissionDenied:
@@ -190,6 +194,17 @@ def login():
         else:
             message = 'Invalid email/password.'
     return render_template('login.html', form=form, message=message)
+
+# Logout route
+@app.route('/logout', methods=['GET', 'POST'])
+@login_required
+def logout():
+    logout_user()
+    for key in ('identity.name', 'identity.auth_type'):
+        session.pop(key, None)
+    identity_changed.send(current_app._get_current_object(),
+        identity=AnonymousIdentity())
+    return render_template('logout.html')
 
 # Employee Hub route
 @app.route('/employee', methods=['GET', 'POST'])
