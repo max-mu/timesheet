@@ -5,10 +5,10 @@
 <hr>
 <p>{{ error }}</p>
 <hr>
-{% if logged_in==True %}
-<p><a href="{{ url_for('index') }}">Go back to the Main Hub</a> - You will be logged out</p>
+{% if logged_in == True %}
+    <p><a href="{{ url_for('index') }}">Go back to the Main Hub</a> - You will be logged out</p>
 {% else %}
-<p><a href="{{ url_for('index') }}">Go back to the Main Hub</a></p>
+    <p><a href="{{ url_for('index') }}">Go back to the Main Hub</a></p>
 {% endif %}
 <hr>
 </div>

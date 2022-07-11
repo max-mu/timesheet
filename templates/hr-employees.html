@@ -12,7 +12,12 @@
   {{ wtf.form_field(form.address, value=result['address']) }}
   {{ wtf.form_field(form.phone, value=result['phone']) }}
   {{ wtf.form_field(form.supv_id) }}
-  {{ wtf.form_field(form.roles) }}
+  <input type="hidden" name="edit_self" value="{{ edit_self }}">
+  {% if edit_self == True %}
+    {{ wtf.form_field(form.roles, disabled=True) }}
+  {% else %}
+    {{ wtf.form_field(form.roles) }}
+  {% endif %}
   <div class="form-check form-check-inline">
     <label class="form-check-label"><input class="form-check-input" type="radio" name="choice" value="edit" checked> Edit with these changes</label>
   </div>

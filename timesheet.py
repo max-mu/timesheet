@@ -431,8 +431,9 @@ def hr():
                 conn.close()
                 form = HREmployeeForm(supv_id=result['supv_id'], 
                     roles=result['roles'])
+                edit_self = employ_id == str(current_user.id)
                 return render_template('hr-employees.html', form=form, 
-                    result=result)
+                    result=result, edit_self=edit_self)
 
         # Search timesheet
         else:
@@ -521,6 +522,9 @@ def hr_employees():
         query = 'DELETE FROM employees WHERE id = "%s"'%id
         cur.execute(query)
         conn.commit()
+        query = 'UPDATE employees SET supv_id = -1 WHERE supv_id = "%s"'%id
+        cur.execute(query)
+        conn.commit()
         query = 'DELETE FROM timesheet WHERE employ_id = "%s"'%id
         cur.execute(query)
         conn.commit()
@@ -531,11 +535,17 @@ def hr_employees():
         address = request.form['address']
         phone = request.form['phone']
         supv_id = request.form['supv_id']
-        roles = request.form['roles']
-        query = 'UPDATE employees SET name = "%s", email = "%s", \
-            address = "%s", phone = "%s", supv_id = "%s", roles = "%s" \
-            WHERE id = "%s"'%(name, email, address, phone, supv_id, roles, 
-            id)
+        edit_self = request.form['edit_self']
+        if edit_self == 'False':
+            roles = request.form['roles']
+            query = 'UPDATE employees SET name = "%s", email = "%s", \
+                address = "%s", phone = "%s", supv_id = "%s", roles = "%s" \
+                WHERE id = "%s"'%(name, email, address, phone, supv_id, roles, 
+                id)
+        else:
+            query = 'UPDATE employees SET name = "%s", email = "%s", \
+                address = "%s", phone = "%s", supv_id = "%s" WHERE id = \
+                "%s"'%(name, email, address, phone, supv_id, id)
         cur.execute(query)
         conn.commit()
         query = 'UPDATE timesheet SET name = "%s" WHERE employ_id = "%s"'%(name, 
