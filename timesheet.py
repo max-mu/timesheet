@@ -132,7 +132,7 @@ def generate_csv(results, name, date_begin, date_end):
 # Default route
 @app.route('/')
 def index():
-    # If the user was logged in when returning, they will be logged out
+    # Logs out the user if returning from an error
     if current_user.is_authenticated:
         logout_user()
         for key in ('identity.name', 'identity.auth_type'):
