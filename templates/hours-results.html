@@ -11,6 +11,7 @@
   <tr>
     <th></th>
     <th>Name</th>
+    <th>Day of Week</th>
     <th>Date</th>
     <th>Clock In</th>
     <th>Clock Out</th>
@@ -23,6 +24,7 @@
       <tr>
         <td class="center-align"><input type="radio" class="radio" name="id" value="{{ data['id'] }}" checked></td>
         <td>{{ data['name'] }}</td>
+        <td>{{ data['day_of_week'] }}</td>
         <td>{{ data['date_conv'] }}</td>
         <td>{{ data['clock_in'] }}</td>
         <td>{{ data['clock_out'] }}</td>
@@ -34,6 +36,7 @@
       <tr>
         <td class="center-align"><input type="radio" class="radio" name="id" value="{{ data['id'] }}"></td>
         <td>{{ data['name'] }}</td>
+        <td>{{ data['day_of_week']</td>
         <td>{{ data['date_conv'] }}</td>
         <td>{{ data['clock_in'] }}</td>
         <td>{{ data['clock_out'] }}</td>

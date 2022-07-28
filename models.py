@@ -33,6 +33,7 @@ class Timesheet(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
     employ_id = db.Column(db.Integer)
+    day_of_week = db.Column(db.String)
     date = db.Column(db.String)
     date_conv = db.Column(db.String)
     clock_in = db.Column(db.String)
@@ -41,11 +42,12 @@ class Timesheet(db.Model):
     hours = db.Column(db.Float)
     approval = db.Column(db.String)
 
-    def __init__(self, name, employ_id, date, date_conv, 
-        clock_in, clock_out, pto, hours, approval):
+    def __init__(self, name, employ_id, day_of_week, date,
+        date_conv, clock_in, clock_out, pto, hours, approval):
 
         self.name = name
         self.employ_id = employ_id
+        self.day_of_week = day_of_week
         self.date = date
         self.date_conv = date_conv
         self.hours = hours

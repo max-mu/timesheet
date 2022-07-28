@@ -5,6 +5,7 @@
   <table class="table">
     <tr>
       <th>Name</th>
+      <th>Day of Week</th>
       <th>Date</th>           
       <th>Clock In</th>
       <th>Clock Out</th>
@@ -15,6 +16,7 @@
     {% for data in results %}
       <tr>
         <td>{{ data['name'] }}</td>
+        <td>{{ data['day_of_week'] }}</td>
         <td>{{ data['date_conv'] }}</td>
         <td>{{ data['clock_in'] }}</td>
         <td>{{ data['clock_out'] }}</td>

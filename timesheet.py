@@ -45,6 +45,28 @@ def convert_date(date):
     date_conv = str(temp.strftime('%m-%d-%Y'))
     return date_conv
 
+# Returns the day of the week given the string of the date
+def get_day_of_week(s):
+    datetime_obj = datetime.strptime(s, '%Y-%m-%d').date()
+    num_day = datetime_obj.weekday()
+    print(s)
+    print(datetime_obj)
+    print(num_day)
+    if num_day == 0:
+        return 'Mon'
+    elif num_day == 1:
+        return 'Tue'
+    elif num_day == 2:
+        return 'Wed'
+    elif num_day == 3:
+        return 'Thur'
+    elif num_day == 4:
+        return 'Fri'
+    elif num_day == 5:
+        return 'Sat'
+    else:
+        return 'Sun'
+
 # Gets the first and last date out of a list of records
 def first_last_date(results):
     first_date = last_date = None
@@ -64,7 +86,7 @@ def gen_timesheet_csv(results, name, date_begin, date_end):
         total_hours = 0
         all_approved = True
         # Header
-        w.writerow(('name', 'date', 'clock_in', 'clock_out', 
+        w.writerow(('name', 'day_of_week', 'date', 'clock_in', 'clock_out', 
             'pto', 'hours', 'approval', 'total_hours', 'all_approved'))
         yield data.getvalue()
         data.seek(0)
@@ -77,10 +99,10 @@ def gen_timesheet_csv(results, name, date_begin, date_end):
                 total_hours += record['hours']
                 rec_approve = record['approval']
                 all_approved = all_approved and rec_approve
-                w.writerow((record['name'], record['date_conv'],
-                    record['clock_in'], record['clock_out'], 
-                    record['pto'], record['hours'], 
-                    record['approval']))
+                w.writerow((record['name'], record['day_of_week'], 
+                    record['date_conv'], record['clock_in'], 
+                    record['clock_out'], record['pto'], 
+                    record['hours'], record['approval']))
                 yield data.getvalue()
                 data.seek(0)
                 data.truncate(0)
@@ -90,10 +112,10 @@ def gen_timesheet_csv(results, name, date_begin, date_end):
                 # Not the first entry, creates the summary for the last employee
                 if cur_name != None:
                     if all_approved:
-                        w.writerow(('', '', '', '', '', '', '', total_hours,
+                        w.writerow(('', '', '', '', '', '', '', '', total_hours,
                             'Approved'))
                     else:
-                        w.writerow(('', '', '', '', '', '', '', total_hours,
+                        w.writerow(('', '', '', '', '', '', '', '', total_hours,
                             'Not Approved'))
                     yield data.getvalue()
                     data.seek(0)
@@ -103,20 +125,20 @@ def gen_timesheet_csv(results, name, date_begin, date_end):
                 cur_name = record['name']
                 total_hours = record['hours']
                 all_approved = record['approval'] == 'Approved'
-                w.writerow((record['name'], record['date_conv'],
-                    record['clock_in'], record['clock_out'], 
-                    record['pto'], record['hours'], 
-                    record['approval']))
+                w.writerow((record['name'], record['day_of_week'], 
+                    record['date_conv'], record['clock_in'], 
+                    record['clock_out'], record['pto'], 
+                    record['hours'], record['approval']))
                 yield data.getvalue()
                 data.seek(0)
                 data.truncate(0)
 
         # Write in the last employee's summary
         if all_approved:
-            w.writerow(('', '', '', '', '', '', '', total_hours,
+            w.writerow(('', '', '', '', '', '', '', '', total_hours,
                 'Approved'))
         else:
-            w.writerow(('', '', '', '', '', '', '', total_hours,
+            w.writerow(('', '', '', '', '', '', '', '', total_hours,
                 'Not Approved'))
         yield data.getvalue()
         data.seek(0)
@@ -255,17 +277,18 @@ def hours_submit():
         name = current_user.name
         employ_id = current_user.id
         date = request.form['date']
+        day_of_week = get_day_of_week(date)
         date_conv = convert_date(date)
         clock_in = request.form['clock_in']
         clock_out = request.form['clock_out']
         pto = request.form['pto']
         hours = request.form['hours']
         approval = 'Not Approved'
-        query = 'INSERT INTO timesheet (name, employ_id, date, \
-            date_conv, clock_in, clock_out, pto, hours, approval) \
-            VALUES ("%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", \
-            "%s")'%(name, employ_id, date, date_conv, clock_in, clock_out, 
-            pto, hours, approval)
+        query = 'INSERT INTO timesheet (name, employ_id, day_of_week, \
+            date, date_conv, clock_in, clock_out, pto, hours, approval) \
+            VALUES ("%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", \
+            "%s")'%(name, employ_id, day_of_week, date, date_conv, clock_in, 
+            clock_out, pto, hours, approval)
         cur.execute(query)
         conn.commit()
         cur.close()
@@ -322,16 +345,17 @@ def hours_adjust():
     id = request.form['id']
     employ_id = request.form['employ_id']
     date = request.form['date']
+    day_of_week = get_day_of_week(date)
     date_conv = convert_date(date)
     clock_in = request.form['clock_in']
     clock_out = request.form['clock_out']
     pto = request.form['pto']
     hours = request.form['hours']
     approval = 'Not Approved'
-    query = 'UPDATE timesheet SET date = "%s", date_conv = "%s", \
-        clock_in = "%s", clock_out = "%s", pto = "%s", hours = "%s", \
-        approval = "%s" WHERE id = "%s"'%(date, date_conv, clock_in, 
-        clock_out, pto, hours, approval, id)
+    query = 'UPDATE timesheet SET day_of_week = "%s", date = "%s", \
+        date_conv = "%s", clock_in = "%s", clock_out = "%s", pto = "%s", \
+        hours = "%s", approval = "%s" WHERE id = "%s"'%(day_of_week, date, 
+        date_conv, clock_in, clock_out, pto, hours, approval, id)
     cur.execute(query)
     conn.commit()
 
