@@ -49,9 +49,6 @@ def convert_date(date):
 def get_day_of_week(s):
     datetime_obj = datetime.strptime(s, '%Y-%m-%d').date()
     num_day = datetime_obj.weekday()
-    print(s)
-    print(datetime_obj)
-    print(num_day)
     if num_day == 0:
         return 'Mon'
     elif num_day == 1:
