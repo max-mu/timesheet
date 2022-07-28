@@ -9,20 +9,23 @@
     {{ form.csrf_token }}
     {{ wtf.form_field(form.employ_id) }}
     <div class="form-check form-check-inline">
-      <label class="form-check-label"><input class="form-check-input" type="radio" name="search_edit" value="search" checked> Search the timesheet</label>
+      <label class="form-check-label"><input class="form-check-input" type="radio" name="choice_1" value="search" checked> Search the timesheet</label>
     </div>
     <div class="form-check form-check-inline">
-      <label class="form-check-label"><input class="form-check-input" type="radio" name="search_edit" value="edit"> View/Edit/Delete an employee's information (can only select one employee)</label>
+      <label class="form-check-label"><input class="form-check-input" type="radio" name="choice_1" value="edit"> View/Edit/Delete an employee's information (can only select one employee)</label>
+    </div>
+    <div class="form-check form-check-inline">
+      <label class="form-check-label"><input class="form-check-input" type="radio" name="choice_1" value="download"> Download employee information as CSV</label>
     </div>
     <hr>
     <p class="pt-1">If you are searching the timesheet, the rest of this form must be filled out.</p>
     {{ wtf.form_field(form.date_begin) }}
     {{ wtf.form_field(form.date_end) }}
     <div class="form-check form-check-inline">
-      <label class="form-check-label"><input class="form-check-input" type="radio" name="export_choice" value="csv" checked> Download as CSV</label>
+      <label class="form-check-label"><input class="form-check-input" type="radio" name="choice_2" value="csv" checked> Download as CSV</label>
     </div>
     <div class="form-check form-check-inline">
-      <label class="form-check-label"><input class="form-check-input" type="radio" name="export_choice" value="browser" > View in Browser</label>
+      <label class="form-check-label"><input class="form-check-input" type="radio" name="choice_2" value="browser" > View in Browser</label>
     </div>
     <p class="pt-1"></p>
     {{ wtf.form_field(form.submit) }}

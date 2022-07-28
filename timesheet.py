@@ -55,8 +55,8 @@ def first_last_date(results):
             last_date = data['date']
     return first_date, last_date
 
-# Generates the CSV for HR
-def generate_csv(results, name, date_begin, date_end):
+# Generates a CSV with the timesheet info given the data in results
+def gen_timesheet_csv(results, name, date_begin, date_end):
     def generate():
         data = StringIO()
         w = csv.writer(data)
@@ -121,12 +121,38 @@ def generate_csv(results, name, date_begin, date_end):
         yield data.getvalue()
         data.seek(0)
         data.truncate(0)
+
     response = Response(generate(), mimetype='text/csv')
     begin_conv = convert_date(date_begin)
     end_conv = convert_date(date_end)
     response.headers.set('Content-Disposition', 'attachment', 
         filename='"%s"_"%s"_"%s".csv'%(name, begin_conv,
         end_conv))
+    return response
+
+# Generates a CSV with the employee info given the data in results
+def gen_employee_csv(results, name):
+    def generate():
+        data = StringIO()
+        w = csv.writer(data)
+
+        # Header
+        w.writerow(('name', 'email', 'address', 'phone'))
+        yield data.getvalue()
+        data.seek(0)
+        data.truncate(0)
+
+        # Data
+        for record in results:
+            w.writerow((record['name'], record['email'],
+                record['address'], record['phone']))
+            yield data.getvalue()
+            data.seek(0)
+            data.truncate(0)
+            
+    response = Response(generate(), mimetype='text/csv')
+    response.headers.set('Content-Disposition', 'attachment', 
+        filename='"%s"_employee_info.csv'%(name))
     return response
 
 # Default route
@@ -414,10 +440,10 @@ def hr():
     if request.method == 'POST':
         employ_id = request.form['employ_id']
         all_flag = employ_id == 'all'
-        search_edit = request.form['search_edit']
+        choice_1 = request.form['choice_1']
 
         # Edit employee info
-        if search_edit == 'edit':
+        if choice_1 == 'edit':
             # Cannot select 'All Employees' for this action
             if all_flag:
                 message = 'You cannot select all employees for editing.'
@@ -435,6 +461,30 @@ def hr():
                 return render_template('hr-employees.html', form=form, 
                     result=result, edit_self=edit_self)
 
+        # Download employee info
+        elif choice_1 == 'download':
+            conn = mysql.connect()
+            cur = conn.cursor(pymysql.cursors.DictCursor)
+            results = ''
+            name = 'all' # Will get renamed if one employee was selected
+
+            # If all employees was selected
+            if all_flag:
+                query = 'SELECT * FROM employees ORDER BY name'
+                cur.execute(query)
+                results = cur.fetchall()
+            else:
+                query = 'SELECT name FROM employees WHERE id = "%s" \
+                    '%employ_id
+                cur.execute(query)
+                name = cur.fetchone()['name']
+                query = 'SELECT * FROM employees WHERE id = "%s"'%employ_id
+                cur.execute(query)
+                results = cur.fetchall()
+            cur.close()
+            conn.close()
+            return gen_employee_csv(results, name)
+
         # Search timesheet
         else:
             date_begin = request.form['date_begin']
@@ -444,7 +494,7 @@ def hr():
                 message = 'You must fill out the rest of this form if you are \
                     searching the timesheet.'
             else:
-                export_choice = request.form['export_choice']
+                choice_2 = request.form['choice_2']
                 end_first = (date_end < date_begin)
 
                 # End date is before begin date
@@ -500,12 +550,12 @@ def hr():
                     # No error messages
                     if message == '':
                         # Displays results in a table in a browser
-                        if export_choice == 'browser':
+                        if choice_2 == 'browser':
                             return render_template('hr-results.html', 
                                 results=results)
                         # Exports results in a CSV
                         else:
-                            return generate_csv(results, name, date_begin, 
+                            return gen_timesheet_csv(results, name, date_begin, 
                                 date_end)
 
     return render_template('hr.html', form=form, message=message)
