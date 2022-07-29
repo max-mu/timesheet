@@ -287,10 +287,13 @@ def hours_submit():
             "%s")'%(name, employ_id, day_of_week, date, date_conv, clock_in, 
             clock_out, pto, hours, approval)
         cur.execute(query)
+        result = [name, day_of_week, date_conv, clock_in, clock_out, 
+            pto, hours]
         conn.commit()
         cur.close()
         conn.close()
-        return render_template('confirm.html', hours=True)
+        # Display submitted info
+        return render_template('confirm.html', hours=True, result=result)
     return render_template('hours-submit.html', form=form)
 
 # Hours View route

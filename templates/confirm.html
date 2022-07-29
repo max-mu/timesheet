@@ -4,12 +4,33 @@
 <h3 class="pt-3">Confirmation</h3>
 <hr>
 <p><strong>Your form has been submitted!</strong></p>
-<hr>
 {% if hours==True %}
-    <p><a href="{{ url_for('employee') }}">Return to the Employee Hub</a></p>
-    <p><a href="{{ url_for('logout') }}">Logout</a></p>
+  <table class="table">
+    <tr>
+      <th>Name</th>
+      <th>Day of Week</th>
+      <th>Date</th>
+      <th>Clock In</th>
+      <th>Clock Out</th>
+      <th>Holiday/PTO</th>
+      <th>Hours</th>
+    </tr>
+    <tr>
+      <td>{{ result[0] }}</td>
+      <td>{{ result[1] }}</td>
+      <td>{{ result[2] }}</td>
+      <td>{{ result[3] }}</td>
+      <td>{{ result[4] }}</td>
+      <td>{{ result[5] }}</td>
+      <td>{{ result[6] }}</td>
+    </tr>
+  </table>
+  <hr>
+  <p><a href="{{ url_for('employee') }}">Return to the Employee Hub</a></p>
+  <p><a href="{{ url_for('logout') }}">Logout</a></p>
 {% else %}
-    <p><a href="{{ url_for('index') }}">Go back to the Main Hub</a></p>
+  <hr>
+  <p><a href="{{ url_for('index') }}">Go back to the Main Hub</a></p>
 {% endif %}
 <hr>
 </div>
