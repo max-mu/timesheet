@@ -26,8 +26,8 @@
         <td>{{ data['name'] }}</td>
         <td>{{ data['day_of_week'] }}</td>
         <td>{{ data['date_conv'] }}</td>
-        <td>{{ data['clock_in'] }}</td>
-        <td>{{ data['clock_out'] }}</td>
+        <td>{{ data['in_conv'] }}</td>
+        <td>{{ data['out_conv'] }}</td>
         <td>{{ data['pto'] }}</td>
         <td>{{ data['hours'] }}</td>
         <td>{{ data['approval'] }}</td>
@@ -36,10 +36,10 @@
       <tr>
         <td class="center-align"><input type="radio" class="radio" name="id" value="{{ data['id'] }}"></td>
         <td>{{ data['name'] }}</td>
-        <td>{{ data['day_of_week']</td>
+        <td>{{ data['day_of_week'] }}</td>
         <td>{{ data['date_conv'] }}</td>
-        <td>{{ data['clock_in'] }}</td>
-        <td>{{ data['clock_out'] }}</td>
+        <td>{{ data['in_conv'] }}</td>
+        <td>{{ data['out_conv'] }}</td>
         <td>{{ data['pto'] }}</td>
         <td>{{ data['hours'] }}</td>
         <td>{{ data['approval'] }}</td>
@@ -49,8 +49,8 @@
 </table>
 
 <!-- Used for reconstructing the table later -->
-<input type="hidden" name="first_date" value="{{ first_date }}">
-<input type="hidden" name="last_date" value="{{ last_date }}">
+<input type="hidden" name="date_begin" value="{{ date_begin }}">
+<input type="hidden" name="date_end" value="{{ date_end }}">
 
 <p>Select which entry you would like to edit/remove.</p>
 <p>Note: any entries that are edited will be unapproved.</p>

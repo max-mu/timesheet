@@ -17,8 +17,8 @@
   {{ wtf.form_field(form.hours, value=result['hours']) }}
   {{ wtf.form_field(form.submit) }}
   <!-- Hidden fields to redirect and reconstruct the table of records on results pages -->
-  <input type="hidden" name="first_date" value="{{ first_date }}">
-  <input type="hidden" name="last_date" value="{{ last_date }}">
+  <input type="hidden" name="date_begin" value="{{ date_begin }}">
+  <input type="hidden" name="date_end" value="{{ date_end }}">
   <input type="hidden" name="type" value="{{ type }}">
 </form>
 <hr>

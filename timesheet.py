@@ -39,11 +39,15 @@ def on_identity_loaded(sender, identity):
         for n in needs:
             identity.provides.add(n)
 
-# Converts times from YYYYY/MM/DD to MM/DD/YYYY, returns in string type
+# Converts dates from YYYYY/MM/DD to MM/DD/YYYY, returns string type
 def convert_date(date):
     temp = datetime.strptime(date, '%Y-%m-%d')
-    date_conv = str(temp.strftime('%m-%d-%Y'))
-    return date_conv
+    return str(temp.strftime('%m-%d-%Y'))
+
+# Converts times from 24 hour to 12 hour, returns string type
+def convert_time(time):
+    t = datetime.strptime(time, "%H:%M")
+    return str(t.strftime("%I:%M %p"))
 
 # Returns the day of the week given the string of the date
 def get_day_of_week(s):
@@ -63,16 +67,6 @@ def get_day_of_week(s):
         return 'Sat'
     else:
         return 'Sun'
-
-# Gets the first and last date out of a list of records
-def first_last_date(results):
-    first_date = last_date = None
-    for data in results:
-        if first_date == None or data['date'] < first_date:
-            first_date = data['date']
-        if last_date == None or last_date < data['date']:
-            last_date = data['date']
-    return first_date, last_date
 
 # Generates a CSV with the timesheet info given the data in results
 def gen_timesheet_csv(results, name, date_begin, date_end):
@@ -97,8 +91,8 @@ def gen_timesheet_csv(results, name, date_begin, date_end):
                 rec_approve = record['approval']
                 all_approved = all_approved and rec_approve
                 w.writerow((record['name'], record['day_of_week'], 
-                    record['date_conv'], record['clock_in'], 
-                    record['clock_out'], record['pto'], 
+                    record['date_conv'], record['in_conv'], 
+                    record['out_conv'], record['pto'], 
                     record['hours'], record['approval']))
                 yield data.getvalue()
                 data.seek(0)
@@ -123,8 +117,8 @@ def gen_timesheet_csv(results, name, date_begin, date_end):
                 total_hours = record['hours']
                 all_approved = record['approval'] == 'Approved'
                 w.writerow((record['name'], record['day_of_week'], 
-                    record['date_conv'], record['clock_in'], 
-                    record['clock_out'], record['pto'], 
+                    record['date_conv'], record['in_conv'], 
+                    record['out_conv'], record['pto'], 
                     record['hours'], record['approval']))
                 yield data.getvalue()
                 data.seek(0)
@@ -277,17 +271,19 @@ def hours_submit():
         day_of_week = get_day_of_week(date)
         date_conv = convert_date(date)
         clock_in = request.form['clock_in']
+        in_conv = convert_time(clock_in)
         clock_out = request.form['clock_out']
+        out_conv = convert_time(clock_out)
         pto = request.form['pto']
         hours = request.form['hours']
         approval = 'Not Approved'
         query = 'INSERT INTO timesheet (name, employ_id, day_of_week, \
-            date, date_conv, clock_in, clock_out, pto, hours, approval) \
-            VALUES ("%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", \
-            "%s")'%(name, employ_id, day_of_week, date, date_conv, clock_in, 
-            clock_out, pto, hours, approval)
+            date, date_conv, clock_in, in_conv, clock_out, out_conv, pto, \
+            hours, approval) VALUES ("%s", "%s", "%s", "%s", "%s", "%s", "%s", \
+            "%s", "%s", "%s", "%s", "%s")'%(name, employ_id, day_of_week, date, 
+            date_conv, clock_in, in_conv, clock_out, out_conv, pto, hours, approval)
         cur.execute(query)
-        result = [name, day_of_week, date_conv, clock_in, clock_out, 
+        result = [name, day_of_week, date_conv, in_conv, out_conv, 
             pto, hours]
         conn.commit()
         cur.close()
@@ -329,9 +325,8 @@ def hours_search():
                     to %s. If you were expecting results, please \
                     double check all fields.'%(begin_conv, end_conv)
             else:
-                first_date, last_date = first_last_date(results)
                 return render_template('hours-results.html', results=results,
-                    message='', first_date=first_date, last_date=last_date)
+                    message='', date_begin=date_begin, date_end=date_end)
 
     return render_template('hours-search.html', form=form, message=message)
 
@@ -348,29 +343,32 @@ def hours_adjust():
     day_of_week = get_day_of_week(date)
     date_conv = convert_date(date)
     clock_in = request.form['clock_in']
+    in_conv = convert_time(clock_in)
     clock_out = request.form['clock_out']
+    out_conv = convert_time(clock_out)
     pto = request.form['pto']
     hours = request.form['hours']
     approval = 'Not Approved'
     query = 'UPDATE timesheet SET day_of_week = "%s", date = "%s", \
-        date_conv = "%s", clock_in = "%s", clock_out = "%s", pto = "%s", \
-        hours = "%s", approval = "%s" WHERE id = "%s"'%(day_of_week, date, 
-        date_conv, clock_in, clock_out, pto, hours, approval, id)
+        date_conv = "%s", clock_in = "%s", in_conv = "%s", clock_out = "%s", \
+        out_conv = "%s", pto = "%s", hours = "%s", approval = "%s" WHERE id = "%s"\
+        '%(day_of_week, date, date_conv, clock_in, in_conv, clock_out, out_conv, 
+        pto, hours, approval, id)
     cur.execute(query)
     conn.commit()
 
-    first_date = request.form['first_date']
-    last_date = request.form['last_date']
+    date_begin = request.form['date_begin']
+    date_end = request.form['date_end']
     type = request.form['type']
     if type == 'supv_all':
         query = 'SELECT timesheet.*, supv_id FROM timesheet INNER \
             JOIN employees ON employees.id=timesheet.employ_id WHERE \
             (supv_id = "%s" OR employ_id = "%s") AND (date BETWEEN "%s" AND \
             "%s") ORDER BY name, date'%(current_user.id, current_user.id, 
-            first_date, last_date)
+            date_begin, date_end)
     else:
         query = 'SELECT * FROM timesheet WHERE employ_id = "%s" AND date BETWEEN \
-            "%s" AND "%s" ORDER BY date'%(employ_id, first_date, last_date)
+            "%s" AND "%s" ORDER BY date'%(employ_id, date_begin, date_end)
     cur.execute(query)
     results = cur.fetchall()
     cur.close()
@@ -393,18 +391,18 @@ def hours_adjust():
     # Redirected to employee search results
     if type == 'employ':
         return render_template('hours-results.html', results=results, 
-            message=message, first_date=first_date, last_date=last_date)
+            message=message, date_begin=date_begin, date_end=date_end)
 
     # Redirected to supverisor search results, only one employee searched
     elif type == 'supv':
         return render_template('supv-results.html', results=results, 
-            message=message, first_date=first_date, last_date=last_date, 
+            message=message, date_begin=date_begin, date_end=date_end, 
             all_flag=False)
 
     # Redirected to supverisor search results, all employees searched
     else:
         return render_template('supv-results.html', results=results, 
-            message=message, first_date=first_date, last_date=last_date, 
+            message=message, date_begin=date_begin, date_end=date_end, 
             all_flag=True)
 
 # Hours Edit or Remove route
@@ -415,8 +413,8 @@ def edit_or_remove():
     cur = conn.cursor(pymysql.cursors.DictCursor)
     choice = request.form['choice']
     id = request.form['id']
-    first_date = request.form['first_date']
-    last_date = request.form['last_date']
+    date_begin = request.form['date_begin']
+    date_end = request.form['date_end']
 
     # Action was edit
     if choice == 'edit':
@@ -427,7 +425,7 @@ def edit_or_remove():
         conn.close()
         form = HoursForm()
         return render_template('hours-adjust.html', result=result, 
-            first_date=first_date, last_date=last_date, form=form,
+            date_begin=date_begin, date_end=date_end, form=form,
             type='employ')
 
     # Action was delete
@@ -436,8 +434,8 @@ def edit_or_remove():
         cur.execute(query)
         conn.commit()
         query = 'SELECT * FROM timesheet WHERE employ_id = "%s" AND date \
-            BETWEEN "%s" AND "%s" ORDER BY date'%(current_user.id, first_date, 
-            last_date)
+            BETWEEN "%s" AND "%s" ORDER BY date'%(current_user.id, date_begin, 
+            date_end)
         cur.execute(query)
         results = cur.fetchall()
         cur.close()
@@ -450,10 +448,9 @@ def edit_or_remove():
             form = EmployHoursForm()
             return render_template('hours-search.html', message=message, form=form)
         message = 'The entry has been deleted.'
-        first_date, last_date = first_last_date(results)
 
         return render_template('hours-results.html', results=results, 
-            message=message, first_date=first_date, last_date=last_date)
+            message=message, date_begin=date_begin, date_end=date_end)
 
 # HR Hub route
 @app.route('/hr', methods=['GET', 'POST'])
@@ -698,9 +695,8 @@ def supv():
 
             # If there are no error messages
             if message == '':
-                first_date, last_date = first_last_date(results)
                 return render_template('supv-results.html', results=results,
-                    message=message, first_date=first_date, last_date=last_date, 
+                    message=message, date_begin=date_begin, date_end=date_end, 
                     all_flag=all_flag)
 
     return render_template('supv.html', form=form, message=message)
@@ -713,8 +709,8 @@ def supv_results():
     conn = mysql.connect()
     cur = conn.cursor(pymysql.cursors.DictCursor)
     employ_id = request.form['employ_id']
-    first_date = request.form['first_date']
-    last_date = request.form['last_date']
+    date_begin = request.form['date_begin']
+    date_end = request.form['date_end']
     all_flag = request.form['all_flag']
     choice = request.form['choice']
     message = ''
@@ -725,11 +721,11 @@ def supv_results():
             JOIN employees ON employees.id=timesheet.employ_id WHERE \
             (supv_id = "%s" OR employ_id = "%s") AND (date BETWEEN "%s" AND \
             "%s") ORDER BY name, date'%(current_user.id, current_user.id, 
-            first_date, last_date)
+            date_begin, date_end)
     else:
         last_query = 'SELECT * FROM timesheet WHERE employ_id = "%s" AND date BETWEEN \
-            "%s" AND "%s" ORDER BY name, date'%(employ_id, first_date,
-            last_date)
+            "%s" AND "%s" ORDER BY name, date'%(employ_id, date_begin,
+            date_end)
 
     # If no records were selected
     if len(list) == 0:
@@ -740,7 +736,7 @@ def supv_results():
         cur.close()
         conn.close()
         return render_template('supv-results.html', results=results, 
-            message=message, first_date=first_date, last_date=last_date, 
+            message=message, date_begin=date_begin, date_end=date_end, 
             all_flag=all_flag)
 
     # Action is edit
@@ -759,11 +755,11 @@ def supv_results():
             form = HoursForm()
             if all_flag=='True':
                 return render_template('hours-adjust.html', result=result, 
-                    first_date=first_date, last_date=last_date, form=form, 
+                    date_begin=date_begin, date_end=date_end, form=form, 
                     type='supv_all')
             else:
                 return render_template('hours-adjust.html', result=result, 
-                    first_date=first_date, last_date=last_date, form=form, 
+                    date_begin=date_begin, date_end=date_end, form=form, 
                     type='supv')
 
     # Action is delete
@@ -805,7 +801,7 @@ def supv_results():
         return render_template('supv.html', message=message, form=form)
 
     return render_template('supv-results.html', results=results, 
-        message=message, first_date=first_date, last_date=last_date, 
+        message=message, date_begin=date_begin, date_end=date_end, 
         all_flag=all_flag)
 
 # Onboarding route

@@ -1,5 +1,6 @@
 from wtforms import SubmitField, StringField, PasswordField, DateField, \
-    DecimalField, HiddenField, SelectField
+    DecimalField, SelectField
+from wtforms_components import TimeField
 from flask_wtf import FlaskForm
 from wtforms.validators import InputRequired, EqualTo
 from __init__ import mysql
@@ -40,8 +41,8 @@ def get_supvs():
 class HoursForm(FlaskForm):
     date = DateField(label='Date', 
         validators=[InputRequired()], format='%Y-%m-%d', default=datetime.now())
-    clock_in = StringField(label='Clock In')
-    clock_out = StringField(label='Clock Out')
+    clock_in = TimeField(label='Clock In')
+    clock_out = TimeField(label='Clock Out')
     pto = DecimalField(label='Holiday/Paid Time Off', 
         validators=[InputRequired()], default=0)
     hours = DecimalField(label='Total Hours', validators=[InputRequired()])
