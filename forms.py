@@ -41,11 +41,10 @@ def get_supvs():
 class HoursForm(FlaskForm):
     date = DateField(label='Date', 
         validators=[InputRequired()], format='%Y-%m-%d', default=datetime.now())
-    clock_in = TimeField(label='Clock In')
-    clock_out = TimeField(label='Clock Out')
+    clock_in = TimeField(label='Clock In (Can leave blank if entering PTO)')
+    clock_out = TimeField(label='Clock Out (Can leave blank if entering PTO)')
     pto = DecimalField(label='Holiday/Paid Time Off', 
         validators=[InputRequired()], default=0)
-    hours = DecimalField(label='Total Hours', validators=[InputRequired()])
     submit = SubmitField(label='Submit')
 
 # Login Form

@@ -14,7 +14,6 @@
   {{ wtf.form_field(form.clock_in, value=result['clock_in']) }}
   {{ wtf.form_field(form.clock_out, value=result['clock_out']) }}
   {{ wtf.form_field(form.pto, value=result['pto']) }}
-  {{ wtf.form_field(form.hours, value=result['hours']) }}
   {{ wtf.form_field(form.submit) }}
   <!-- Hidden fields to redirect and reconstruct the table of records on results pages -->
   <input type="hidden" name="date_begin" value="{{ date_begin }}">

@@ -49,6 +49,20 @@ def convert_time(time):
     t = datetime.strptime(time, "%H:%M")
     return str(t.strftime("%I:%M %p"))
 
+# Calculates the hours worked in a day
+def cal_hours(clock_in, clock_out, pto):
+    c_in = datetime.strptime(clock_in, "%H:%M")
+    c_out = datetime.strptime(clock_out, "%H:%M")
+    diff = str(c_out - c_in)
+    diff_split = diff.split(':')
+    diff_split[1] = float(diff_split[1]) / 60
+    if c_out > c_in:
+        return float(diff_split[0]) + diff_split[1] + float(pto)
+    # Covering the case where someone works an overnight shift (?)
+    else:
+        remove_day = diff_split[0].split(', ')
+        return float(remove_day[1]) + diff_split[1] + float(pto)
+
 # Returns the day of the week given the string of the date
 def get_day_of_week(s):
     datetime_obj = datetime.strptime(s, '%Y-%m-%d').date()
@@ -262,7 +276,7 @@ def employee():
 @login_required
 def hours_submit():
     form = HoursForm()
-    if request.method == 'POST' and form.validate_on_submit():
+    if request.method == 'POST':
         conn = mysql.connect()
         cur = conn.cursor(pymysql.cursors.DictCursor)
         name = current_user.name
@@ -270,12 +284,18 @@ def hours_submit():
         date = request.form['date']
         day_of_week = get_day_of_week(date)
         date_conv = convert_date(date)
-        clock_in = request.form['clock_in']
-        in_conv = convert_time(clock_in)
-        clock_out = request.form['clock_out']
-        out_conv = convert_time(clock_out)
+        clock_in = in_conv = request.form.get('clock_in')
+        if clock_in != '': # in_conv will be overwritten here if needed
+            in_conv = convert_time(clock_in)
+        clock_out = out_conv = request.form.get('clock_out')
+        if clock_out != '': # out_conv will be overwritten here if needed
+            out_conv = convert_time(clock_out)
         pto = request.form['pto']
-        hours = request.form['hours']
+        hours = 0
+        if clock_in != '' and clock_out != '':
+            hours = cal_hours(clock_in, clock_out, pto)
+        else:
+            hours = pto
         approval = 'Not Approved'
         query = 'INSERT INTO timesheet (name, employ_id, day_of_week, \
             date, date_conv, clock_in, in_conv, clock_out, out_conv, pto, \
@@ -342,12 +362,19 @@ def hours_adjust():
     date = request.form['date']
     day_of_week = get_day_of_week(date)
     date_conv = convert_date(date)
-    clock_in = request.form['clock_in']
-    in_conv = convert_time(clock_in)
-    clock_out = request.form['clock_out']
-    out_conv = convert_time(clock_out)
+    clock_in = in_conv = request.form.get('clock_in')
+    if clock_in != '': # in_conv will be overwritten here if needed
+        in_conv = convert_time(clock_in)
+    clock_out = out_conv = request.form.get('clock_out')
+    if clock_out != '': # out_conv will be overwritten here if needed
+        out_conv = convert_time(clock_out)
     pto = request.form['pto']
-    hours = request.form['hours']
+    hours = 0
+    if clock_in != '' and clock_out != '':
+        
+        hours = cal_hours(clock_in, clock_out, pto)
+    else:
+        hours = pto
     approval = 'Not Approved'
     query = 'UPDATE timesheet SET day_of_week = "%s", date = "%s", \
         date_conv = "%s", clock_in = "%s", in_conv = "%s", clock_out = "%s", \
